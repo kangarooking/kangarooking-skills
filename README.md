@@ -8,6 +8,8 @@
 kangarooking-skills/
 ├── reshape-your-life/        # 重塑人生技能
 ├── harness-engineering/      # Harness Engineering 框架一键初始化
+├── task-harness/             # Agent 长任务方向盘
+├── ai-article-daily/         # 公众号起号skill
 └── ...
 ```
 
