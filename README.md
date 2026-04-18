@@ -6,6 +6,7 @@
 
 ```
 kangarooking-skills/
+├── book-illustration-workflow/ # 书稿截图、配图、回填与 Feishu 同步工作流
 ├── reshape-your-life/        # 重塑人生技能
 ├── harness-engineering/      # Harness Engineering 框架一键初始化
 ├── task-harness/             # Agent 长任务方向盘
@@ -14,6 +15,25 @@ kangarooking-skills/
 ```
 
 ## Skills 列表
+
+### book-illustration-workflow
+
+书稿章节截图与配图工作流。
+
+适用于：
+- 梳理某一章需要哪些截图和成品图
+- 逐步给出 Claude Code 的真实实操提示词
+- 统一 `图号 -> 文件名 -> 原文位置`
+- 把图片回填到本地 Markdown 正确位置
+- 清理作者备注，生成读者版正文
+- 按正文顺序同步到 Feishu 文档
+
+附带：
+- 章节截图总表模板
+- 截图提示词模板
+- 回填检查表
+
+使用：直接说“按书稿截图流程来”或“帮我搞这一章的配图和截图”
 
 ### harness-engineering
 
