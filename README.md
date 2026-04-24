@@ -11,6 +11,7 @@ kangarooking-skills/
 ├── harness-engineering/      # Harness Engineering 框架一键初始化
 ├── task-harness/             # Agent 长任务方向盘
 ├── ai-article-daily/         # 公众号起号skill
+├── multi-agent-image/        # 多 Agent 图片生成工作流
 └── ...
 ```
 
@@ -54,6 +55,16 @@ kangarooking-skills/
 ### task-harness
 
 任务管理 Harness。
+
+### multi-agent-image
+
+独立的多 Agent 图片生成 skill。
+
+适用于：
+- 基于 `design-image-studio` 设计编译能力做更完整的图片生成工作流
+- 使用 apimart `gpt-image-2` 做异步生成、轮询和下载
+- 建立案例库并复用历史风格参考图
+- 在 Hermes 中使用两阶段交互、批量生成和系列套图工作流
 
 ## 如何贡献
 
