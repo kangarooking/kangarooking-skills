@@ -50,9 +50,10 @@ for idx, (name, scene_desc) in enumerate(scenes, 1):
     print(f"\n[{idx}/{len(scenes)}] Generating: {name}")
 
     cmd = [
-        "python3", "scripts/generate.py",
-        "--prompt", prompt,
-        "--size", "9:16",  # or 16:9, 3:4, 1:1
+        "python3", "design_image.py",
+        "--task", "poster",
+        "--brief", prompt,
+        "--aspect", "9:16",  # or 16:9, 3:4, 1:1
         "--output-dir", output_dir,
         "--output", output_file
     ]
@@ -62,7 +63,7 @@ for idx, (name, scene_desc) in enumerate(scenes, 1):
         print("Using style reference.")
 
     result = subprocess.run(cmd, capture_output=True, text=True,
-                           cwd="/root/.hermes/hermes-agent/skills/design-image-studio")
+                           cwd="/root/.hermes/agents/multi-agent-image")
 
     if os.path.exists(output_path) and os.path.getsize(output_path) > 100000:
         size_mb = os.path.getsize(output_path) / (1024*1024)

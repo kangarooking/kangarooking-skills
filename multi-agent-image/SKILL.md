@@ -7,7 +7,7 @@ license: MIT
 metadata:
   hermes:
     tags: [image-generation, multi-agent, gpt-image-2, apimart, design-compiler, case-library, agency, creative]
-    related_skills: [design-image-studio, stable-diffusion]
+    related_skills: [stable-diffusion]
 
 ---
 
@@ -20,7 +20,7 @@ Build an independent multi-agent image generation workflow on Hermes.
 - You want structured, multi-agent image generation on Hermes
 - You're using **GPT-Image-2 (apimart.ai)** — async API with ratio-based sizing
 - You want a **case library** so future generations can reference past styles (image-to-image)
-- You want to integrate a **design compiler skill** (e.g., design-image-studio) for higher-quality prompts
+- You want an internal **design compiler** for higher-quality prompts
 - You want agents to remember preferences across sessions via file-based memory
 
 ## Architecture
@@ -34,7 +34,7 @@ User Request
     ↓
 [Style Scout Agent]        → chooses task + direction + aspect ratio
     ↓
-[Image Generator Agent]    → calls design-image-studio compiler → GPT-Image-2 API
+[Image Generator Agent]    → calls internal design compiler → GPT-Image-2 API
     │   Step 1: Run design_image.py --prompt-only → structured prompt
     │   Step 2: [Optional] Encode reference case as base64 → image_urls
     │   Step 3: POST api.apimart.ai/v1/images/generations → task_id
@@ -52,38 +52,7 @@ Deliver to user
 
 ## Setup
 
-### 1. Install design-image-studio Skill (Required)
-
-This skill **requires** the `design-image-studio` skill for prompt compilation.
-
-**Check if already installed:**
-```bash
-ls ~/.hermes/hermes-agent/skills/design-image-studio/scripts/
-# Should contain: design_image.py, generate.py
-```
-
-**If not installed**, download from GitHub:
-```bash
-cd ~/.hermes/hermes-agent/skills
-git clone --depth 1 https://github.com/kangarooking/design-image-studio.git
-```
-
-**Verify key files exist:**
-```
-design-image-studio/
-├── scripts/
-│   ├── design_image.py          ← Design compiler (generate reasoning + brief + prompt)
-│   └── generate.py              ← Original generator from the upstream design-image-studio skill
-├── references/
-│   ├── claude-design-sys-prompt-full.txt
-│   ├── design-compiler.md
-│   └── poster.md
-└── SKILL.md
-```
-
-**Critical:** If `scripts/` or `references/` are empty, the git clone was incomplete. Download individual files via `raw.githubusercontent.com`.
-
-### 2. Deploy Agency Code
+### 1. Deploy Skill Code
 
 The skill code lives in `~/.hermes/skills/multi-agent-image/scripts/`.
 Copy it to the runtime working directory:
@@ -98,7 +67,7 @@ Also create the agent role directories:
 mkdir -p ~/.hermes/agents/multi-agent-image/{prompt_engineer,style_scout,image_generator,qa_bot,metadata_manager,refiner}
 ```
 
-### 3. Set API Key
+### 2. Set API Key
 
 ```bash
 export OPENAI_API_KEY="sk-..."
@@ -106,7 +75,7 @@ export OPENAI_API_KEY="sk-..."
 
 This key is for **apimart.ai GPT-Image-2**, not OpenAI DALL-E.
 
-### 4. Install Python Dependencies
+### 3. Install Python Dependencies
 
 ```bash
 pip install openai requests
@@ -217,7 +186,7 @@ result = generate_image(
 # Returns: {"status": "success", "filepath": "...", "url": "...", "task_id": "..."}
 ```
 
-## Design Compiler Integration (design-image-studio)
+## Design Compiler Integration
 
 ### What the Compiler Produces
 
@@ -246,7 +215,7 @@ Running `design_image.py --prompt-only` outputs three sections:
 └── ~2600 character structured English prompt
 ```
 
-### Adapting design-image-studio for apimart.ai
+### Internal Design Compiler for apimart.ai
 
 The skill was originally built for Volcengine Seedream. Three changes are required:
 
@@ -291,7 +260,7 @@ Always test `--prompt-only` before generating:
 import subprocess
 
 result = subprocess.run([
-    "python3", "~/.hermes/hermes-agent/skills/design-image-studio/scripts/design_image.py",
+    "python3", "~/.hermes/agents/multi-agent-image/design_image.py",
     "--task", "poster",
     "--brief", "AI训练营招生海报，强调速度、增长、实战",
     "--direction", "balanced",
@@ -546,7 +515,7 @@ run("像素风游戏敌人：红色蘑菇怪，奔跑跑步姿态，动感十足
 - Specify pose clearly: `站立正面姿态` vs `奔跑跑步姿态，四肢迈开`
 - Use `1:1` for sprites, `16:9` for backgrounds
 
-**If series_generator fails due to download timeouts** (common with apimart.ai), fall back to the sequential `run()` approach above. It gives nearly the same style consistency because all images go through the same `design-image-studio` compiler with identical parameters.
+**If series_generator fails due to download timeouts** (common with apimart.ai), fall back to the sequential `run()` approach above. It gives nearly the same style consistency because all images go through the same internal design compiler with identical parameters.
 
 ## Interactive Two-Phase Workflow (interactive_run.py)
 
@@ -961,9 +930,10 @@ for idx, (name, scene_desc) in enumerate(scenes, 1):
     print(f"\n[{idx}/{len(scenes)}] Generating: {name}")
     
     cmd = [
-        "python3", "scripts/generate.py",
-        "--prompt", prompt,
-        "--size", "9:16",  # or 16:9, 3:4, 1:1
+        "python3", "design_image.py",
+        "--task", "poster",
+        "--brief", prompt,
+        "--aspect", "9:16",  # or 16:9, 3:4, 1:1
         "--output-dir", output_dir,
         "--output", output_file
     ]
@@ -973,7 +943,7 @@ for idx, (name, scene_desc) in enumerate(scenes, 1):
         print("Using style reference.")
     
     result = subprocess.run(cmd, capture_output=True, text=True,
-                           cwd="/root/.hermes/hermes-agent/skills/design-image-studio")
+                           cwd="/root/.hermes/agents/multi-agent-image")
     
     if os.path.exists(output_path) and os.path.getsize(output_path) > 100000:
         size_mb = os.path.getsize(output_path) / (1024*1024)
@@ -1033,7 +1003,7 @@ Incorporate 1-2 specific terms from the page into the `style_prefix` for authent
 ## Version History
 
 - **v1.0.0** — Initial multi-agent agency with GPT-Image-2 support
-- **v2.0.0** — Added design-image-studio integration, case library, interactive selection, image-to-image style reference
+- **v2.0.0** — Added internal design-compiler integration, case library, interactive selection, image-to-image style reference
 - **v2.1.0** — Added robust download retry (stream + 300s timeout + 3 retries + URL fallback), SSL poll retry, `case_id` parameter fix, standalone download recovery pattern, user-interaction rules (ask before generating, linear execution for series)
 - **v2.1.1** — Added e-commerce detail page generation pattern (7-image Taobao sequence), filesystem progress monitoring workaround, PIL text overlay post-processing rules
 - **v2.1.2** — Added interior design before/after pattern (raw room → renovation with spatial consistency via case_id), social media content calendar pattern (Xiaohongshu 9:16 weekly sets), retro CCD/Y2K photography style pattern, military/FPS game character pattern. Validated across 20+ live generations including pixel art game assets, interior design, and lifestyle content.

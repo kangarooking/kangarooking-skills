@@ -2,7 +2,7 @@
 """
 🎨 Multi-Agent Image - Orchestrator v2（案例库版）
 =========================================================
-打通 5 个 Agent + design-image-studio + GPT-Image-2 + 案例库
+打通 5 个 Agent + 内置设计编译器 + GPT-Image-2 + 案例库
 
 新功能：
 - 自动生成完成后保存到案例库
@@ -11,13 +11,12 @@
 
 工作流程:
 用户输入 → [可选:选择参考案例] → Prompt工程师 → 风格研究员
-→ 图片生成引擎(design-image-studio + 参考图) → QA → 档案管理 → [自动保存案例库]
+→ 图片生成引擎(内置设计编译 + 参考图) → QA → 档案管理 → [自动保存案例库]
 """
 
 import os
 import sys
 import json
-import subprocess
 import requests
 import time
 import base64
@@ -26,7 +25,6 @@ from datetime import datetime
 
 # 路径配置
 AGENCY_DIR = Path.home() / ".hermes/agents/multi-agent-image"
-SKILL_DIR = Path.home() / ".hermes/hermes-agent/skills/design-image-studio"
 OUTPUT_DIR = AGENCY_DIR / "output"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -36,6 +34,7 @@ from case_library import (
     add_case, list_cases, search_cases, get_case_image_path,
     CASE_LIBRARY_DIR
 )
+from design_compiler import compile_prompt_package
 
 def require_api_key() -> str:
     """Return the apimart/OpenAI-compatible API key or fail with a clear message."""
@@ -125,28 +124,24 @@ quality: draft/final/premium
 
 def step3_image_generator(brief: str, task: str, direction: str, aspect: str, quality: str,
                           reference_image: str = None) -> dict:
-    """Agent 3: 图片生成引擎 - 调用 design-image-studio + GPT-Image-2"""
+    """Agent 3: 图片生成引擎 - 调用内置设计编译器 + GPT-Image-2"""
     log("图片生成引擎", "🖼️", "启动设计编译 + 图片生成...")
 
     # 3.1 设计编译
-    log("图片生成引擎", "🖼️", "   ① 调用 design-image-studio 编译 Prompt...")
-    design_script = SKILL_DIR / "scripts" / "design_image.py"
-    cmd = [sys.executable, str(design_script),
-           "--task", task, "--brief", brief,
-           "--direction", direction, "--aspect", aspect,
-           "--quality", quality, "--prompt-only"]
-
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    if result.returncode != 0:
-        log("图片生成引擎", "🖼️", f"   ❌ 编译失败")
+    log("图片生成引擎", "🖼️", "   ① 调用内置编译器生成 Prompt...")
+    try:
+        package = compile_prompt_package(
+            brief=brief,
+            task=task,
+            direction=direction,
+            aspect=aspect,
+            quality=quality,
+            image=[reference_image] if reference_image else None,
+        )
+    except Exception as e:
+        log("图片生成引擎", "🖼️", f"   ❌ 编译失败: {e}")
         return {"status": "failed", "error": "Design compilation failed"}
-
-    output = result.stdout
-    prompt = ""
-    if "[prompt]" in output:
-        start = output.index("[prompt]") + len("[prompt]")
-        end = output.index("[settings]", start) if "[settings]" in output else len(output)
-        prompt = output[start:end].strip()
+    prompt = package["prompt"]
 
     log("图片生成引擎", "🖼️", f"   ✅ Prompt 编译完成 ({len(prompt)} 字符)")
 

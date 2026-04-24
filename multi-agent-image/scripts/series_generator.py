@@ -36,7 +36,6 @@
 import os
 import sys
 import json
-import subprocess
 import requests
 import base64
 import time
@@ -45,12 +44,12 @@ from datetime import datetime
 from typing import List, Dict
 
 AGENCY_DIR = Path.home() / ".hermes/agents/multi-agent-image"
-SKILL_DIR = Path.home() / ".hermes/hermes-agent/skills/design-image-studio"
 OUTPUT_DIR = AGENCY_DIR / "output"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 sys.path.insert(0, str(AGENCY_DIR))
 from case_library import add_case
+from design_compiler import compile_prompt_package
 
 def require_api_key() -> str:
     """Return the apimart/OpenAI-compatible API key or fail with a clear message."""
@@ -80,48 +79,19 @@ class SeriesGenerator:
         """
         log("母图生成", "🎨 生成母图，定义系列风格...")
 
-        # 调用 design-image-studio 编译
-        design_script = SKILL_DIR / "scripts" / "design_image.py"
-        cmd = [
-            sys.executable, str(design_script),
-            "--task", task, "--brief", brief,
-            "--direction", direction, "--aspect", aspect,
-            "--quality", quality, "--prompt-only"
-        ]
-
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0:
-            log("母图生成", "❌ 编译失败")
+        try:
+            package = compile_prompt_package(
+                brief=brief,
+                task=task,
+                direction=direction,
+                aspect=aspect,
+                quality=quality,
+            )
+        except Exception as e:
+            log("母图生成", f"❌ 编译失败: {e}")
             return None
-
-        output = result.stdout
-
-        # 提取 design_reasoning
-        reasoning = {}
-        if "[design_reasoning]" in output:
-            start = output.index("[design_reasoning]") + len("[design_reasoning]")
-            end = output.index("[compiled_brief]", start)
-            try:
-                reasoning = json.loads(output[start:end].strip())
-            except:
-                pass
-
-        # 提取 compiled_brief
-        compiled = {}
-        if "[compiled_brief]" in output:
-            start = output.index("[compiled_brief]") + len("[compiled_brief]")
-            end = output.index("[prompt]", start)
-            try:
-                compiled = json.loads(output[start:end].strip())
-            except:
-                pass
-
-        # 提取 prompt
-        prompt = ""
-        if "[prompt]" in output:
-            start = output.index("[prompt]") + len("[prompt]")
-            end = output.index("[settings]", start) if "[settings]" in output else len(output)
-            prompt = output[start:end].strip()
+        compiled = package["compiled_brief"]
+        prompt = package["prompt"]
 
         # 提取关键风格参数
         self.master_style = {

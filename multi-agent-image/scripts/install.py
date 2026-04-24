@@ -10,8 +10,7 @@ Usage:
 What it does:
 1. Copies all Python scripts to ~/.hermes/agents/multi-agent-image/
 2. Creates agent role directories if missing
-3. Verifies design-image-studio skill is present
-4. Prints next steps
+3. Prints next steps
 """
 
 import os
@@ -21,28 +20,11 @@ from pathlib import Path
 
 SKILL_DIR = Path.home() / ".hermes/skills/multi-agent-image"
 AGENCY_DIR = Path.home() / ".hermes/agents/multi-agent-image"
-DESIGN_STUDIO = Path.home() / ".hermes/hermes-agent/skills/design-image-studio"
-
-def check_design_studio():
-    scripts = DESIGN_STUDIO / "scripts"
-    needed = ["design_image.py", "generate.py"]
-    missing = [f for f in needed if not (scripts / f).exists()]
-    if missing:
-        print(f"⚠️  design-image-studio skill missing files: {missing}")
-        print("   Fix: cd ~/.hermes/hermes-agent/skills && git clone --depth 1 https://github.com/kangarooking/design-image-studio.git")
-        return False
-    print("✅ design-image-studio skill OK")
-    return True
 
 def install():
     print("=" * 50)
     print("Multi-Agent Image — Install")
     print("=" * 50)
-
-    # 1. Check dependencies
-    if not check_design_studio():
-        print("\n❌ Install aborted. Please fix the missing dependency above.")
-        sys.exit(1)
 
     # 2. Create directories
     AGENCY_DIR.mkdir(parents=True, exist_ok=True)
@@ -89,7 +71,7 @@ def install():
     print("=" * 50)
     print(f"\nNext steps:")
     print(f"  1. Set API key: export OPENAI_API_KEY=sk-...")
-    print(f"  2. Test: cd {AGENCY_DIR} && python3 quick_start.py")
+    print(f"  2. Test the local compiler: cd {AGENCY_DIR} && python3 design_image.py --brief 'AI训练营招生海报' --prompt-only")
     print(f"  3. Or use orchestrator: python3 -c \"from orchestrator_v2 import run; run('test')\"")
     print(f"\nRuntime output dir: {AGENCY_DIR / 'output'}")
     print(f"Case library dir:   {AGENCY_DIR / 'case_library'}")

@@ -75,6 +75,8 @@ multi-agent-image/
 ├── SKILL.md
 ├── README.md
 ├── scripts/
+│   ├── design_compiler.py
+│   ├── design_image.py
 │   ├── install.py
 │   ├── quick_start.py
 │   ├── orchestrator_v2.py
@@ -90,32 +92,24 @@ multi-agent-image/
     └── linear_batch.py
 ```
 
-## 依赖与边界
+## 独立性
 
-这里需要明确一点：
+当前版本已经把设计编译逻辑内置进仓库。
 
-**当前版本不是完全自包含的。**
-
-虽然 `multi-agent-image` 自己包含了工作流、交互、案例库、批量和系列生成逻辑，但“设计编译”这一步当前仍然依赖一个外部设计编译器运行时。也就是说：
+也就是说：
 
 - 图片生成编排在本 skill 内
+- 设计编译在本 skill 内
 - `gpt-image-2` 调用在本 skill 内
 - 案例库和交互逻辑在本 skill 内
-- 但最终 prompt 的设计编译步骤，当前不是完全内置的
 
-所以如果你问“它和之前的 skill 是不是完全独立”：
-
-- 从仓库组织上，现在它是独立 skill
-- 从运行实现上，现在还不是完全独立运行时
-
-这是当前实现状态，不是 README 叙事问题。
+从仓库组织和运行实现两个层面看，它现在都是独立的。
 
 ## 环境要求
 
 - 已配置 `OPENAI_API_KEY`
 - 已安装 Python 依赖：`openai`、`requests`
 - Hermes 运行环境可用
-- 本地存在可用的外部设计编译器运行时
 
 ## 安装
 
@@ -127,7 +121,6 @@ python3 ~/.hermes/skills/multi-agent-image/scripts/install.py
 
 - 把运行脚本复制到 `~/.hermes/agents/multi-agent-image/`
 - 创建案例库、输出目录和各 agent 子目录
-- 检查外部设计编译器运行时是否存在
 
 ## 配置 API Key
 
@@ -144,6 +137,13 @@ export OPENAI_API_KEY="sk-..."
 ```bash
 cd ~/.hermes/agents/multi-agent-image
 python3 quick_start.py "AI训练营招生海报，强调速度、增长、实战"
+```
+
+### 方式 1.5：只跑设计编译，不直接生成
+
+```bash
+cd ~/.hermes/agents/multi-agent-image
+python3 design_image.py --brief "AI训练营招生海报，强调速度、增长、实战" --prompt-only
 ```
 
 ### 方式 2：完整工作流
@@ -257,19 +257,16 @@ sg.create_series(
 
 ## 当前限制
 
-- 当前版本仍依赖外部设计编译步骤，不是完全自包含 skill
 - 目前图片通道主要围绕 `gpt-image-2`
 - 系列生成仍然比较重，每张图都不是“毫秒级”工作流
-- README 已避免写死上游 skill 名称，但代码层面的外部依赖仍然真实存在
+- 仓库里仍有一部分历史说明文档尚未完全重写，但主运行路径已经独立
 
 ## 后续可以继续做什么
 
-如果后面要把它做成真正完全独立的 skill，下一步不是继续改 README，而是做代码级改造：
+如果后面继续增强，比较自然的方向是：
 
-- 把设计编译逻辑内置进本仓库
-- 去掉安装阶段对外部运行时的检查
-- 去掉脚本里对外部 `design_image.py` 的直接调用
-
-这样它才会从“独立仓库”真正变成“独立运行时”。
+- 增加更多图片 provider，而不是只围绕 `gpt-image-2`
+- 把 `quick_start.py` 也切到统一设计编译器
+- 进一步收敛长文档，把历史兼容说明清理掉
 
 完整使用细节和长文档说明见 [SKILL.md](./SKILL.md)。
