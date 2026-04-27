@@ -12,6 +12,7 @@ kangarooking-skills/
 ├── task-harness/             # Agent 长任务方向盘
 ├── ai-article-daily/         # 公众号起号skill
 ├── multi-agent-image/        # 多 Agent 图片生成工作流
+├── twitter-monitor/          # X/Twitter 博主推文抓取与可选飞书同步
 └── ...
 ```
 
@@ -65,6 +66,18 @@ kangarooking-skills/
 - 使用 apimart `gpt-image-2` 做异步生成、轮询和下载
 - 建立案例库并复用历史风格参考图
 - 在 Hermes 中使用两阶段交互、批量生成和系列套图工作流
+
+### twitter-monitor
+
+X/Twitter 博主最新推文抓取技能。
+
+适用于：
+- 根据博主 ID、@handle 或主页 URL 抓取最近推文
+- 配置 `twitterapi.io` API key 后执行一次性抓取
+- 控制分页数，默认只抓 1 页
+- 输出 JSON/CSV，包含内容、链接、作者、阅读量、点赞、转发、评论、收藏、是否回复、抓取时间等字段
+- 按需通过 `feishu-cli` 同步到 Feishu/Lark 多维表格
+- 抓取成功后按需引导 OpenClaw、Codex automation、cron 或 launchd 定时执行
 
 ## 如何贡献
 
