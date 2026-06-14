@@ -1,0 +1,46 @@
+{
+  "cases": [
+    {
+      "id": "agent-speed-step37-bilibili",
+      "platform": "bilibili",
+      "topic": "Step 3.7 Flash Claude Code Agent speed workflow",
+      "preferred_mechanisms": [
+        "实测",
+        "Claude Code",
+        "速度",
+        "Agent",
+        "快模型",
+        "干活"
+      ],
+      "avoid": [
+        "震撼",
+        "彻底取代",
+        "最强",
+        "best ever",
+        "公众号",
+        "tweet",
+        "YouTube"
+      ]
+    },
+    {
+      "id": "ai-video-reverse-prompt-bilibili",
+      "platform": "bilibili",
+      "topic": "AI video reverse prompt workflow visual understanding",
+      "preferred_mechanisms": [
+        "实测",
+        "AI",
+        "提示词",
+        "复刻",
+        "工作流",
+        "教程"
+      ],
+      "avoid": [
+        "端掉行业",
+        "封神",
+        "最强",
+        "You Won't Believe",
+        "thread"
+      ]
+    }
+  ]
+}

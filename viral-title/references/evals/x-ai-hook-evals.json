@@ -1,0 +1,41 @@
+{
+  "cases": [
+    {
+      "id": "agent-speed-step37-x",
+      "platform": "x",
+      "topic": "Step 3.7 Flash Claude Code Agent speed workflow",
+      "preferred_mechanisms": [
+        "fast model executes",
+        "tool replacement",
+        "I tested it",
+        "strong model thinks"
+      ],
+      "avoid": [
+        "震撼",
+        "彻底取代",
+        "最强",
+        "best ever",
+        "best ai model ever",
+        "公众号"
+      ]
+    },
+    {
+      "id": "ai-video-reverse-prompt-x",
+      "platform": "x",
+      "topic": "AI video reverse prompt workflow visual understanding",
+      "preferred_mechanisms": [
+        "I tested it",
+        "workflow",
+        "examples",
+        "breakdown"
+      ],
+      "avoid": [
+        "端掉行业",
+        "封神",
+        "best ever",
+        "best ai model ever",
+        "爆款文章"
+      ]
+    }
+  ]
+}

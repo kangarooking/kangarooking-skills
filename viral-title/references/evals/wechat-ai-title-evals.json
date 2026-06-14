@@ -1,0 +1,37 @@
+{
+  "name": "wechat-ai-title-evals",
+  "description": "Small seed eval set for WeChat public-account AI title generation.",
+  "rubric": {
+    "clarity": "The title clearly names the concrete AI model, tool, workflow, or user problem.",
+    "wechat_fit": "The title has WeChat public-account density, stakes, and curiosity without unsupported hype.",
+    "mechanism": "The title uses a clear mechanism such as tool replacement, first victim, tutorial promise, evidence test, or hotspot bridge.",
+    "credibility": "The title stays within the article evidence.",
+    "selection": "The best title should be stronger than generic model-review phrasing."
+  },
+  "cases": [
+    {
+      "id": "agent-speed-step37",
+      "platform": "wechat",
+      "topic": "Step 3.7 Flash for faster local agents",
+      "content_summary": "Article argues that local agents are getting steadier but still slow. Step 3.7 Flash is tested in Claude Code/Codex-style workflows across video prompt reversal, physical bug detection, location reasoning, Windows troubleshooting, and HTML animation replication. The conclusion is strong models should think and fast models should do work.",
+      "preferred_mechanisms": ["tool replacement", "evidence test", "agent speed"],
+      "avoid": ["claiming Step 3.7 Flash fully replaces GPT-5.5", "generic model benchmark title"],
+      "ideal_directions": [
+        "用了几天 Step 3.7 Flash 才发现，原来 Claude Code 一直缺的是速度",
+        "别再让 GPT-5.5 干所有脏活了，我给 Claude Code 接了个快模型"
+      ]
+    },
+    {
+      "id": "ai-prompt-title-library",
+      "platform": "wechat",
+      "topic": "AI prompt techniques for writing less AI-like copy",
+      "content_summary": "Article gives reusable prompts and examples for making AI writing sound less formulaic.",
+      "preferred_mechanisms": ["tutorial promise", "anti-skill skill", "template slot"],
+      "avoid": ["empty promise without number or output"],
+      "ideal_directions": [
+        "40 个让 AI 写出没有“AI 味”的通用提示词",
+        "AI 写作的技巧，就是先去掉 AI 味"
+      ]
+    }
+  ]
+}

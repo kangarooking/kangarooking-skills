@@ -13,6 +13,7 @@ kangarooking-skills/
 ├── ai-article-daily/         # 公众号起号skill
 ├── multi-agent-image/        # 多 Agent 图片生成工作流
 ├── twitter-monitor/          # X/Twitter 博主推文抓取与可选飞书同步
+├── viral-title/              # 多平台爆款标题生成与自进化标题库
 └── ...
 ```
 
@@ -78,6 +79,30 @@ X/Twitter 博主最新推文抓取技能。
 - 输出 JSON/CSV，包含内容、链接、作者、阅读量、点赞、转发、评论、收藏、是否回复、抓取时间等字段
 - 按需通过 `feishu-cli` 同步到 Feishu/Lark 多维表格
 - 抓取成功后按需引导 OpenClaw、Codex automation、cron 或 launchd 定时执行
+
+### viral-title
+
+多平台爆款标题生成技能。
+
+适用于：
+- 给公众号、X/Twitter、YouTube、B站内容批量生成标题或首帖 Hook
+- 按统一方法论生成第一阶段 30 个标题，并推荐最佳标题
+- 按平台调性生成差异化标题：公众号标题、X Hook、YouTube 标题+缩略图字、B站标题+封面字+标签
+- 从本地爆款标题库里检索相似标题骨架，套用到当前内容
+- 根据用户最终选择、改稿、评分和反馈持续进化
+
+附带：
+- 公众号、X、YouTube、B站平台方法论
+- 公众号 AI/科技爆款标题库与多平台标题骨架库
+- 标题样本检索脚本
+- 标题会话记录、反馈记录、反馈分析和种子评估脚本
+- 共享机制关键词表，避免脚本关键词漂移
+
+使用：
+- “用 viral-title 给这篇公众号文章起标题”
+- “给这个 YouTube 视频生成标题和缩略图字”
+- “把这篇内容改成 B站标题包装”
+- “套用标题库，给我 10 个 X Hook”
 
 ## 如何贡献
 
