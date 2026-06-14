@@ -15,6 +15,16 @@ Run the bundled script from this skill directory:
 python3 scripts/search_wechat_viral_topic.py --category ai --days 7 --min-read 10000 --min-read-month-avg-ratio 2 --limit 50 --format markdown
 ```
 
+The script excludes large institution/media accounts by default because they are weak references for new-account growth. The built-in list is: 新智元, 机器之心, 差评, 智东西, 极客公园, 量子位, CSDN.
+
+Useful exclusion options:
+
+```bash
+python3 scripts/search_wechat_viral_topic.py --category ai --exclude-account "某机构号"
+python3 scripts/search_wechat_viral_topic.py --category ai --exclude-accounts "账号A,账号B"
+python3 scripts/search_wechat_viral_topic.py --category ai --no-default-excluded-accounts
+```
+
 Required environment for live API calls:
 
 ```bash
@@ -36,8 +46,9 @@ If `WECHAT_HOT_ACCESS_TOKEN` is set, the script uses it and skips token creation
 5. Filter for average-read breakout candidates:
    - `read_num >= --min-read`
    - `read_num / month_read_avg >= --min-read-month-avg-ratio`
-6. Rank by `breakout_score`, then by `read_month_avg_ratio`, then by `read_num`.
-7. Return JSON for automation or Markdown for human topic review.
+6. Exclude institution/media accounts that are not useful new-account references, unless the user disables the default exclusion list.
+7. Rank by `breakout_score`, then by `read_month_avg_ratio`, then by `read_num`.
+8. Return JSON for automation or Markdown for human topic review.
 
 ## Output Contract
 
@@ -68,6 +79,7 @@ Read `references/scoring.md` before changing thresholds or comparing this output
 ## Guardrails
 
 - Treat `follower_count` as an unstable reference field, not a filter.
+- Exclude obvious institution/media accounts by default. Add more with `--exclude-account` or `--exclude-accounts` when a niche has dominant official/media accounts.
 - If account detail fails because the account is not yet collected, retry only when the user accepts the delay or `--account-retry-seconds` is set.
 - If `month_read_avg` is missing, do not label the article as a confirmed average-read breakout.
 - Use article URLs only for research and topic reference. Do not copy article content wholesale.

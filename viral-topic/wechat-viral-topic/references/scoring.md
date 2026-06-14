@@ -19,6 +19,16 @@ read_num / month_read_avg >= 2
 
 If `month_read_avg` is missing, the article is not a confirmed average-read breakout.
 
+## Account Exclusion
+
+Exclude institution/media accounts before returning results because they are weak references for users who are starting or growing a new account. The default exclusion list is:
+
+```text
+新智元, 机器之心, 差评, 智东西, 极客公园, 量子位, CSDN
+```
+
+Use `--exclude-account` or `--exclude-accounts` to add more accounts for a niche. Use `--no-default-excluded-accounts` only when the user explicitly wants institution/media accounts included.
+
 ## Formulas
 
 ```text

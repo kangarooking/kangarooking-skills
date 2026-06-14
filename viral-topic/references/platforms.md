@@ -9,6 +9,7 @@ Default logic:
 - Recent window: 7 days.
 - Confirmed viral rule: `read_num >= 10000` and `read_num / month_read_avg >= 2`.
 - `follower_count` is reference-only because the account-detail value is unstable.
+- Default account exclusion: 新智元, 机器之心, 差评, 智东西, 极客公园, 量子位, CSDN.
 - Best output use: article angle, headline structure, category-level account references.
 
 ## X

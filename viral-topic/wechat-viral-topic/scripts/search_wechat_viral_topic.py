@@ -18,6 +18,7 @@ from typing import Any
 
 
 USER_AGENT = "account-growth-wechat-average-read-viral/0.2"
+DEFAULT_EXCLUDED_ACCOUNTS = ["新智元", "机器之心", "差评", "智东西", "极客公园", "量子位", "CSDN"]
 
 
 def as_int(value: Any, default: int = 0) -> int:
@@ -45,6 +46,22 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-pages", type=int, default=5)
     parser.add_argument("--account-retry-seconds", type=float, default=0.0)
     parser.add_argument("--include-unknown-followers", action="store_true", help="Deprecated compatibility option; average-read data is required.")
+    parser.add_argument(
+        "--exclude-account",
+        action="append",
+        default=[],
+        help="Account name to exclude from results. Can be repeated.",
+    )
+    parser.add_argument(
+        "--exclude-accounts",
+        default="",
+        help="Comma-separated account names to exclude in addition to the default organization/media account list.",
+    )
+    parser.add_argument(
+        "--no-default-excluded-accounts",
+        action="store_true",
+        help="Disable the built-in organization/media account exclusion list.",
+    )
     parser.add_argument("--skip-enrich", action="store_true")
     parser.add_argument("--input-json", help="Load hot-article payload from a local JSON file instead of calling the API.")
     parser.add_argument("--format", choices=["json", "markdown"], default="json")
@@ -58,6 +75,57 @@ def redacted_args(args: argparse.Namespace) -> dict[str, Any]:
         if values.get(key):
             values[key] = "***redacted***"
     return values
+
+
+def split_account_names(value: str) -> list[str]:
+    names: list[str] = []
+    for part in re.split(r"[,，\n]", value or ""):
+        name = part.strip()
+        if name:
+            names.append(name)
+    return names
+
+
+def excluded_account_names(args: argparse.Namespace) -> list[str]:
+    names: list[str] = []
+    if not args.no_default_excluded_accounts:
+        names.extend(DEFAULT_EXCLUDED_ACCOUNTS)
+    names.extend(split_account_names(args.exclude_accounts))
+    names.extend(name.strip() for name in args.exclude_account if name and name.strip())
+
+    seen: set[str] = set()
+    unique: list[str] = []
+    for name in names:
+        key = normalize_account_name(name)
+        if key and key not in seen:
+            seen.add(key)
+            unique.append(name)
+    return unique
+
+
+def normalize_account_name(value: Any) -> str:
+    return re.sub(r"\s+", "", str(value or "")).casefold()
+
+
+def matching_excluded_account(result: dict[str, Any], excluded_names: list[str]) -> str:
+    if not excluded_names:
+        return ""
+    candidates = [
+        result.get("author_name"),
+        result.get("account_username"),
+        (result.get("raw") or {}).get("article", {}).get("nickname"),
+        (result.get("raw") or {}).get("account", {}).get("nickname"),
+        (result.get("raw") or {}).get("account", {}).get("username"),
+    ]
+    normalized_candidates = [normalize_account_name(candidate) for candidate in candidates if candidate]
+    for excluded in excluded_names:
+        normalized_excluded = normalize_account_name(excluded)
+        if not normalized_excluded:
+            continue
+        for candidate in normalized_candidates:
+            if candidate == normalized_excluded or normalized_excluded in candidate:
+                return excluded
+    return ""
 
 
 def api_url(base_url: str, path: str, query: dict[str, Any] | None = None) -> str:
@@ -283,6 +351,7 @@ def format_markdown(payload: dict[str, Any]) -> str:
         f"- Category: {payload['query'].get('category')}",
         f"- Window days: {payload['query'].get('days')}",
         f"- Results: {len(payload['results'])}",
+        f"- Excluded accounts: {', '.join(payload['query'].get('excluded_accounts') or []) or 'none'}",
         "",
     ]
     for index, item in enumerate(payload["results"], 1):
@@ -303,13 +372,18 @@ def format_markdown(payload: dict[str, Any]) -> str:
         lines.extend(["## Source Status", ""])
         for status in payload["source_status"]:
             lines.append(f"- {status.get('source')}: ok={status.get('ok')} count={status.get('count', '')} error={status.get('error', '')}")
+    if payload.get("excluded_counts"):
+        lines.extend(["", "## Excluded Accounts", ""])
+        for name, count in sorted(payload["excluded_counts"].items(), key=lambda pair: (-pair[1], pair[0])):
+            lines.append(f"- {name}: {count}")
     return "\n".join(lines).strip() + "\n"
 
 
 def main() -> int:
     args = parse_args()
+    excluded_names = excluded_account_names(args)
     if args.dry_run:
-        print(json.dumps({"planned": redacted_args(args), "published_at": published_after(args.days)}, ensure_ascii=False, indent=2))
+        print(json.dumps({"planned": redacted_args(args), "published_at": published_after(args.days), "excluded_accounts": excluded_names}, ensure_ascii=False, indent=2))
         return 0
 
     source_status: list[dict[str, Any]] = []
@@ -334,6 +408,7 @@ def main() -> int:
             source_status.extend(statuses)
 
     results: list[dict[str, Any]] = []
+    excluded_counts: dict[str, int] = {}
     for item in items:
         biz = extract_biz(str(item.get("content_url") or ""))
         key = biz or f"nickname:{item.get('nickname') or ''}"
@@ -344,6 +419,10 @@ def main() -> int:
             "month_read_avg": item.get("month_read_avg"),
         }
         scored = score_item(item, account, args)
+        excluded_by = matching_excluded_account(scored, excluded_names)
+        if excluded_by:
+            excluded_counts[excluded_by] = excluded_counts.get(excluded_by, 0) + 1
+            continue
         if passes_filters(scored, args):
             results.append(scored)
 
@@ -361,8 +440,10 @@ def main() -> int:
             "days": args.days,
             "min_read": args.min_read,
             "min_read_month_avg_ratio": args.min_read_month_avg_ratio,
+            "excluded_accounts": excluded_names,
         },
         "source_status": source_status,
+        "excluded_counts": excluded_counts,
         "results": results[: args.limit],
     }
     if args.format == "markdown":
