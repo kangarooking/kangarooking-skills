@@ -1,0 +1,4 @@
+interface:
+  display_name: "爆款标题"
+  short_description: "为公众号、X、YouTube、B站批量生成爆款标题"
+  default_prompt: "Use $viral-title to generate 30 viral title candidates for my content and select the best one."
