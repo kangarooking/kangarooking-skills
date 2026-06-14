@@ -13,6 +13,7 @@ kangarooking-skills/
 ├── ai-article-daily/         # 公众号起号skill
 ├── multi-agent-image/        # 多 Agent 图片生成工作流
 ├── twitter-monitor/          # X/Twitter 博主推文抓取与可选飞书同步
+├── viral-topic/              # 多平台起号选题与爆款内容发现
 ├── viral-title/              # 多平台爆款标题生成与自进化标题库
 └── ...
 ```
@@ -79,6 +80,28 @@ X/Twitter 博主最新推文抓取技能。
 - 输出 JSON/CSV，包含内容、链接、作者、阅读量、点赞、转发、评论、收藏、是否回复、抓取时间等字段
 - 按需通过 `feishu-cli` 同步到 Feishu/Lark 多维表格
 - 抓取成功后按需引导 OpenClaw、Codex automation、cron 或 launchd 定时执行
+
+### viral-topic
+
+多平台起号选题与爆款内容发现技能。
+
+适用于：
+- 从公众号、X/Twitter、B站、YouTube 找近期爆款内容作为选题参考
+- 公众号按“阅读数超过账号月均阅读 2 倍且阅读量不低于 1 万”判断爆款
+- X/Twitter 与 B站保留低粉爆款逻辑，优先找内容表现明显超过作者粉丝规模的样本
+- YouTube 只做近期爆款筛选，不默认做低订阅过滤
+- 输出跨平台选题表，保留来源链接、账号/作者指标、时间窗口和爆款证据
+
+内含子 skill：
+- `wechat-viral-topic`
+- `x-viral-topic`
+- `bilibili-viral-topic`
+- `youtube-viral-topic`
+
+使用：
+- “用 viral-topic 找 AI Agent 最近的起号选题”
+- “帮我找公众号和 X 的低粉爆款参考”
+- “看一下 B站和 YouTube 最近有什么爆款选题”
 
 ### viral-title
 

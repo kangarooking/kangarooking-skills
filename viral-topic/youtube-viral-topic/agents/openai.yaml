@@ -1,0 +1,4 @@
+interface:
+  display_name: "YouTube Viral Topic"
+  short_description: "Find recent viral YouTube topic references"
+  default_prompt: "Use $youtube-viral-topic to find recent viral YouTube videos for my niche."

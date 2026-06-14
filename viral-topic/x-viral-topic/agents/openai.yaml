@@ -1,0 +1,4 @@
+interface:
+  display_name: "X Viral Topic"
+  short_description: "Find low-follower viral X topic references"
+  default_prompt: "Use $x-viral-topic to find low-follower viral X posts for my niche."

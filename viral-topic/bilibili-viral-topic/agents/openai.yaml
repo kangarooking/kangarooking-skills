@@ -1,0 +1,4 @@
+interface:
+  display_name: "Bilibili Viral Topic"
+  short_description: "Find low-follower viral Bilibili topic references"
+  default_prompt: "Use $bilibili-viral-topic to find low-follower viral Bilibili videos for my niche."

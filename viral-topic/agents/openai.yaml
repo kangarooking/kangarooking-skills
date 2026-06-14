@@ -1,0 +1,4 @@
+interface:
+  display_name: "Viral Topic"
+  short_description: "Route viral topic discovery across platforms"
+  default_prompt: "Use $viral-topic to find viral topic references across my target platforms."

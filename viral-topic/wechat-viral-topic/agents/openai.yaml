@@ -1,0 +1,4 @@
+interface:
+  display_name: "WeChat Viral Topic"
+  short_description: "Find WeChat viral topic references"
+  default_prompt: "Use $wechat-viral-topic to find WeChat articles that beat account average reads in my target category."
