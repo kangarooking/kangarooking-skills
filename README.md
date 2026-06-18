@@ -6,6 +6,7 @@
 
 ```
 kangarooking-skills/
+├── apimart-image-gen/       # APIMart GPT-Image-2 异步图片生成与下载
 ├── book-illustration-workflow/ # 书稿截图、配图、回填与 Feishu 同步工作流
 ├── reshape-your-life/        # 重塑人生技能
 ├── harness-engineering/      # Harness Engineering 框架一键初始化
@@ -19,6 +20,27 @@ kangarooking-skills/
 ```
 
 ## Skills 列表
+
+### apimart-image-gen
+
+APIMart GPT-Image-2 异步图片生成技能。
+
+适用于：
+- 文生图和带参考图的图生图
+- 控制 `1k`、`2k`、`4k` 输出分辨率
+- 控制 `16:9`、`21:9`、`1:1` 等比例或直接传像素尺寸
+- 提交 APIMart 异步任务、轮询任务状态并下载图片结果
+- 使用环境变量读取 API key，避免密钥进入 prompt、脚本或提交记录
+
+附带：
+- APIMart GPT-Image-2 API 参考
+- 纯标准库 Python 命令行 helper
+- Codex UI 元数据
+
+使用：
+- “用 apimart-image-gen 生成一张 16:9 的公众号封面”
+- “用这两张参考图生成一张 2K 图片，并下载结果”
+- “查询这个 APIMart task_id 的生成状态”
 
 ### book-illustration-workflow
 

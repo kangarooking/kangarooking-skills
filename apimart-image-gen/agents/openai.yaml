@@ -1,0 +1,4 @@
+interface:
+  display_name: "APIMart Image Gen"
+  short_description: "APIMart GPT-Image-2 async image generation"
+  default_prompt: "Use $apimart-image-gen to generate a 16:9 2K image from this prompt and download the result."
