@@ -14,6 +14,7 @@ kangarooking-skills/
 ├── ai-article-daily/         # 公众号起号skill
 ├── multi-agent-image/        # 多 Agent 图片生成工作流
 ├── twitter-monitor/          # X/Twitter 博主推文抓取与可选飞书同步
+├── video-downloader/         # 多平台视频下载、原始发布文案提取与 ASR 转写
 ├── viral-topic/              # 多平台起号选题与爆款内容发现
 ├── viral-title/              # 多平台爆款标题生成与自进化标题库
 └── ...
@@ -103,6 +104,29 @@ X/Twitter 博主最新推文抓取技能。
 - 按需通过 `feishu-cli` 同步到 Feishu/Lark 多维表格
 - 抓取成功后按需引导 OpenClaw、Codex automation、cron 或 launchd 定时执行
 
+### video-downloader
+
+多平台视频素材下载与文案提取技能。
+
+适用于：
+- 输入抖音、B站、YouTube、小红书链接后下载原视频
+- 提取平台原始发布文案、标题、描述、标签，保存为 `post_caption.txt`
+- 下载后抽取音频，通过 SiliconFlow SenseVoiceSmall 或本地 Whisper 生成 `transcript.txt`
+- 保存标准化 `metadata.json`，方便后续做内容分析、素材归档或接入其他 skill
+- 给后续平台扩展预留 provider 入口
+
+当前支持：
+- 抖音：H5 解析为主线，失败时走 `yt-dlp` 备用路线
+- B站：基于 `yt-dlp`
+- YouTube：基于 `yt-dlp`
+- 小红书：基于 `yt-dlp`
+- 视频号：暂未直接支持。当前建议先在微信小程序「kg百宝箱」里粘贴视频号链接下载视频，再用本 skill 做本地 ASR 或后续处理
+
+使用：
+- “用 video-downloader 下载这个抖音视频，并提取文案”
+- “把这个 B站/YouTube/小红书链接下载下来，不做 ASR”
+- “下载后用 SiliconFlow 免费 ASR 转成简体中文文案”
+
 ### viral-topic
 
 多平台起号选题与爆款内容发现技能。
@@ -148,6 +172,18 @@ X/Twitter 博主最新推文抓取技能。
 - “给这个 YouTube 视频生成标题和缩略图字”
 - “把这篇内容改成 B站标题包装”
 - “套用标题库，给我 10 个 X Hook”
+
+## 关联项目
+
+### cangjie-skill
+
+[cangjie-skill](https://github.com/kangarooking/cangjie-skill) 是把书的方法论蒸馏成可调用 AI Skills 的生成器工作流。
+
+它适用于：
+- 把一本书从普通摘要变成可触发、可组合、可测试的 skill 工具包
+- 使用 RIA-TV++ 流水线完成整书理解、并行提取、三重验证、RIA++ 构造、Zettelkasten 链接和压力测试
+- 为高价值书籍生成 `BOOK_OVERVIEW.md`、`INDEX.md`、多个独立 `SKILL.md` 和测试 prompts
+- 作为更大的 skill 生态中的“蒸馏书”模块，与蒸馏人的 `nuwa-skill`、进化 skill 的 `darwin-skill` 配合使用
 
 ## 如何贡献
 
