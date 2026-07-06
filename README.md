@@ -15,6 +15,7 @@ kangarooking-skills/
 ├── multi-agent-image/        # 多 Agent 图片生成工作流
 ├── twitter-monitor/          # X/Twitter 博主推文抓取与可选飞书同步
 ├── video-downloader/         # 多平台视频下载、原始发布文案提取与 ASR 转写
+├── hy-3d-gen/                # 腾讯混元生3D TokenHub/OpenAI 兼容接口生成 3D 模型
 ├── viral-topic/              # 多平台起号选题与爆款内容发现
 ├── viral-title/              # 多平台爆款标题生成与自进化标题库
 └── ...
@@ -126,6 +127,21 @@ X/Twitter 博主最新推文抓取技能。
 - “用 video-downloader 下载这个抖音视频，并提取文案”
 - “把这个 B站/YouTube/小红书链接下载下来，不做 ASR”
 - “下载后用 SiliconFlow 免费 ASR 转成简体中文文案”
+
+### hy-3d-gen
+
+腾讯混元生3D模型生成技能。
+
+适用于：
+- 用文本描述生成 3D 模型
+- 用图片 URL 或 Base64 参考图生成 3D 模型
+- 多视角图生 3D、PBR 材质、白模、草图生成、智能拓扑生成
+- 默认通过 TokenHub/OpenAI 兼容接口调用，必要时显式回退腾讯云 SDK
+
+使用：
+- “用 hy-3d-gen 生成一个水晶中国龙 3D 模型”
+- “用这张图片作为参考，生成 GLB 模型”
+- “查询这个混元 3D JobId 的结果”
 
 ### viral-topic
 
