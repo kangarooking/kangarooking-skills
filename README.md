@@ -1,239 +1,227 @@
-# 袋鼠帝 Skills 技能仓库
+<h1 align="center">🧰 Kangarooking Skills</h1>
 
-这里是袋鼠帝的 Skills 技能集合，每个子目录代表一个独立的技能。
+<p align="center"><strong>我自己平时跑通工作流沉淀的一些 Agent Skill，都开源在这里了。有需要的朋友自取，别忘了点个Star。</strong></p>
 
-## 目录结构
+<p align="center">
+  <a href="https://github.com/kangarooking/kangarooking-skills/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/kangarooking/kangarooking-skills?style=for-the-badge&logo=github&color=ffb000"></a>
+  <img alt="Skills" src="https://img.shields.io/badge/Skills-13-10b981?style=for-the-badge">
+  <img alt="Agent Skills" src="https://img.shields.io/badge/Agent_Skills-Standard-7c3aed?style=for-the-badge">
+</p>
 
+<p align="center">
+  <img alt="Claude Code Skill" src="https://img.shields.io/badge/Claude_Code-Skill-d97706?style=flat-square">
+  <img alt="Codex Skill" src="https://img.shields.io/badge/Codex-Skill-10b981?style=flat-square">
+  <img alt="Agent Compatible" src="https://img.shields.io/badge/Agent-Compatible-3b82f6?style=flat-square">
+</p>
+
+这些 Skill 都是在真实项目里跑过、改过、踩过坑之后留下来的，不是为了凑数量做的 Demo。每个目录都是 Agent 可以直接读取的结构化工作流，包含 `SKILL.md`，复杂任务还会配套脚本、参考资料和可复用模板。
+
+适用于 Claude Code、Codex，以及其他支持 [Agent Skills](https://agentskills.io/) 开放标准的 Agent。
+
+---
+
+## 📋 目录
+
+| 名字 | 一句话 | 分类 |
+| --- | --- | --- |
+| 🎨 [apimart-image-gen](./apimart-image-gen) | 通过 APIMart 调用 GPT-Image-2，生成、轮询并下载图片 | 图片生成 |
+| 🧩 [multi-agent-image](./multi-agent-image) | 用设计编译、多 Agent 协作和案例库完成系列图片生产 | 图片生成 |
+| 🐉 [hy-3d-gen](./hy-3d-gen) | 通过腾讯混元生成文生 3D、图生 3D 和 PBR 模型 | 3D 生成 |
+| 🎬 [scroll-promo-site-builder](./scroll-promo-site-builder) | 把产品做成滚动控制、电影感强的动效网站 | 动效网站 |
+| ✍️ [ai-article-daily](./ai-article-daily) | 从 AI 热点选题到公众号文章日更的一套完整流程 | 内容生产 |
+| 🔥 [viral-topic](./viral-topic) | 跨公众号、X、B站和 YouTube 寻找近期爆款选题 | 内容增长 |
+| 🧲 [viral-title](./viral-title) | 为公众号、X、YouTube 和 B站批量生成高潜标题 | 内容增长 |
+| 🐦 [twitter-monitor](./twitter-monitor) | 抓取 X/Twitter 博主动态并按需同步到飞书多维表格 | 信息监控 |
+| 🎥 [video-downloader](./video-downloader) | 下载多平台原视频，提取原始文案、元数据和 ASR 转写 | 素材处理 |
+| 📚 [book-illustration-workflow](./book-illustration-workflow) | 管理书稿截图、配图、回填和飞书同步 | 写书工作流 |
+| 🏗️ [harness-engineering](./harness-engineering) | 为项目初始化 Plan-Build-Verify Harness Engineering 框架 | Agent 工程 |
+| 🧭 [task-harness](./task-harness) | 把长任务拆成可追踪、可验证、可恢复的任务系统 | Agent 工程 |
+| 🌱 [reshape-your-life](./reshape-your-life) | 从使命、身份到行动，重新梳理人生方向 | 个人成长 |
+
+---
+
+## 📦 安装方式
+
+### 直接让 Agent 安装
+
+在 Claude Code、Codex 等支持 Agent Skills 的工具里，直接说：
+
+```text
+帮我安装这个 skill：https://github.com/kangarooking/kangarooking-skills/tree/main/<skill-name>
 ```
-kangarooking-skills/
-├── apimart-image-gen/       # APIMart GPT-Image-2 异步图片生成与下载
-├── book-illustration-workflow/ # 书稿截图、配图、回填与 Feishu 同步工作流
-├── reshape-your-life/        # 重塑人生技能
-├── harness-engineering/      # Harness Engineering 框架一键初始化
-├── task-harness/             # Agent 长任务方向盘
-├── ai-article-daily/         # 公众号起号skill
-├── multi-agent-image/        # 多 Agent 图片生成工作流
-├── twitter-monitor/          # X/Twitter 博主推文抓取与可选飞书同步
-├── video-downloader/         # 多平台视频下载、原始发布文案提取与 ASR 转写
-├── scroll-promo-site-builder/ # 滚动电影式产品动效网站生成、连续性审核与本地交付
-├── hy-3d-gen/                # 腾讯混元生3D TokenHub/OpenAI 兼容接口生成 3D 模型
-├── viral-topic/              # 多平台起号选题与爆款内容发现
-├── viral-title/              # 多平台爆款标题生成与自进化标题库
-└── ...
+
+把 `<skill-name>` 换成目录里的名称，例如 `viral-title`、`video-downloader` 或 `scroll-promo-site-builder`。
+
+### 手动安装
+
+```bash
+git clone https://github.com/kangarooking/kangarooking-skills.git
+
+# Codex
+mkdir -p ~/.codex/skills
+cp -R kangarooking-skills/<skill-name> ~/.codex/skills/
+
+# Claude Code
+mkdir -p ~/.claude/skills
+cp -R kangarooking-skills/<skill-name> ~/.claude/skills/
 ```
 
-## Skills 列表
+如果你的 Agent 暂时不支持 Skill 安装，也可以把对应目录的 `SKILL.md` 和它引用的资源放进项目，让 Agent 按照其中的流程执行。
 
-### apimart-image-gen
+---
 
-APIMart GPT-Image-2 异步图片生成技能。
+## ✨ Skills
 
-适用于：
-- 文生图和带参考图的图生图
-- 控制 `1k`、`2k`、`4k` 输出分辨率
-- 控制 `16:9`、`21:9`、`1:1` 等比例或直接传像素尺寸
-- 提交 APIMart 异步任务、轮询任务状态并下载图片结果
-- 使用环境变量读取 API key，避免密钥进入 prompt、脚本或提交记录
+### 🎨 [apimart-image-gen](./apimart-image-gen)
 
-附带：
-- APIMart GPT-Image-2 API 参考
-- 纯标准库 Python 命令行 helper
-- Codex UI 元数据
+> 一句话调用 APIMart GPT-Image-2，支持文生图、参考图、分辨率与比例控制，并自动等待和下载结果。
 
-使用：
-- “用 apimart-image-gen 生成一张 16:9 的公众号封面”
-- “用这两张参考图生成一张 2K 图片，并下载结果”
-- “查询这个 APIMart task_id 的生成状态”
+- 支持 `1k`、`2k`、`4k` 和常见画面比例
+- 支持 URL、本地图片与多张参考图
+- API Key 只从环境变量读取，不写入代码和提交记录
 
-### book-illustration-workflow
+**适合说：**“生成一张 2K、16:9 的公众号封面，并把结果下载下来。”
 
-书稿章节截图与配图工作流。
+### 🧩 [multi-agent-image](./multi-agent-image)
 
-适用于：
-- 梳理某一章需要哪些截图和成品图
-- 逐步给出 Claude Code 的真实实操提示词
-- 统一 `图号 -> 文件名 -> 原文位置`
-- 把图片回填到本地 Markdown 正确位置
-- 清理作者备注，生成读者版正文
-- 按正文顺序同步到 Feishu 文档
+> 把设计分析、参考图选择、GPT-Image-2 生成和系列一致性组织成多 Agent 图片工作流。
 
-附带：
-- 章节截图总表模板
-- 截图提示词模板
-- 回填检查表
+- 内置设计编译能力和案例库复用
+- 支持批量生成、系列套图和风格一致性
+- 适合 Hermes 等需要多阶段交互的 Agent 环境
 
-使用：直接说“按书稿截图流程来”或“帮我搞这一章的配图和截图”
+**适合说：**“参考这套风格，生成 6 张视觉统一的系列配图。”
 
-### harness-engineering
+### 🐉 [hy-3d-gen](./hy-3d-gen)
 
-基于 OpenAI (Codex)、Anthropic (三智能体架构)、LangChain (自验证循环) 的 Harness Engineering 框架。
+> 输入文字或图片，通过腾讯混元生成可下载的 3D 模型。
 
-在任意项目中一键初始化 Plan-Build-Verify 开发工作流：
-- **4 个智能体**: Planner / Generator / Evaluator / Doc Gardener
-- **4 个命令**: `/plan` / `/build` / `/qa` / `/sprint`
-- **3 个 Hooks**: 循环检测 / 完成前检查 / 上下文注入
-- **10 条黄金原则**: 无规格不编码、可测试验收标准、契约驱动等
+- 支持文生 3D、图生 3D 和多视图生 3D
+- 支持 PBR、白模、草图生成和智能拓扑
+- 默认走 TokenHub/OpenAI 兼容接口，可显式回退腾讯云 SDK
 
-使用: `/harness <项目描述>` 或说 "初始化 harness"
+**适合说：**“用这张龙的图片生成一个带 PBR 材质的 GLB 模型。”
 
-### reshape-your-life
+### 🎬 [scroll-promo-site-builder](./scroll-promo-site-builder)
 
-重塑人生技能。
+> 把产品资料变成滚动驱动、电影感强、可本地交付的动效网站。
 
-### task-harness
+- 用 `image2.0` 和 `Seedance 2.0` 生成连续视觉故事
+- 检查真实首尾帧，处理连接段、短溶解和视频连续性
+- 输出 Vite + React 网站、移动端降级和本地预览包
+- 借鉴 [`oso95/scroll-world`](https://github.com/oso95/scroll-world) 的滚动视频与边界帧方法，并保留完整 MIT 归属说明
 
-任务管理 Harness。
+**适合说：**“把这个产品做成滚动时画面前进、回滚时画面倒放的动效网站。”
 
-### multi-agent-image
+### ✍️ [ai-article-daily](./ai-article-daily)
 
-独立的多 Agent 图片生成 skill。
+> 围绕 AI 热点完成选题、研究、写作和公众号日更。
 
-适用于：
-- 基于 `design-image-studio` 设计编译能力做更完整的图片生成工作流
-- 使用 apimart `gpt-image-2` 做异步生成、轮询和下载
-- 建立案例库并复用历史风格参考图
-- 在 Hermes 中使用两阶段交互、批量生成和系列套图工作流
+- 从热点发现进入文章选题
+- 组织资料、观点、结构和正文
+- 适合定时写作与持续内容运营
 
-### twitter-monitor
+**适合说：**“根据今天的 AI 热点，帮我完成一篇公众号文章。”
 
-X/Twitter 博主最新推文抓取技能。
+### 🔥 [viral-topic](./viral-topic)
 
-适用于：
-- 根据博主 ID、@handle 或主页 URL 抓取最近推文
-- 配置 `twitterapi.io` API key 后执行一次性抓取
-- 控制分页数，默认只抓 1 页
-- 输出 JSON/CSV，包含内容、链接、作者、阅读量、点赞、转发、评论、收藏、是否回复、抓取时间等字段
-- 按需通过 `feishu-cli` 同步到 Feishu/Lark 多维表格
-- 抓取成功后按需引导 OpenClaw、Codex automation、cron 或 launchd 定时执行
+> 在多个内容平台寻找近期爆款和低粉高表现样本，为起号提供选题参考。
 
-### video-downloader
+- 覆盖公众号、X/Twitter、B站和 YouTube
+- 保留来源链接、账号指标、时间窗口和爆款证据
+- 根据平台调用对应的选题采集逻辑
 
-多平台视频素材下载与文案提取技能。
+**适合说：**“找一下最近一周 AI Agent 方向的跨平台爆款选题。”
 
-适用于：
-- 输入抖音、B站、YouTube、小红书链接后下载原视频
-- 提取平台原始发布文案、标题、描述、标签，保存为 `post_caption.txt`
-- 下载后抽取音频，通过 SiliconFlow SenseVoiceSmall 或本地 Whisper 生成 `transcript.txt`
-- 保存标准化 `metadata.json`，方便后续做内容分析、素材归档或接入其他 skill
-- 给后续平台扩展预留 provider 入口
+### 🧲 [viral-title](./viral-title)
 
-当前支持：
-- 抖音：H5 解析为主线，失败时走 `yt-dlp` 备用路线
-- B站：基于 `yt-dlp`
-- YouTube：基于 `yt-dlp`
-- 小红书：基于 `yt-dlp`
-- 视频号：暂未直接支持。当前建议先在微信小程序「kg百宝箱」里粘贴视频号链接下载视频，再用本 skill 做本地 ASR 或后续处理
+> 用通用机制和平台方法论批量生成标题，并从候选中推荐最值得发布的一个。
 
-使用：
-- “用 video-downloader 下载这个抖音视频，并提取文案”
-- “把这个 B站/YouTube/小红书链接下载下来，不做 ASR”
-- “下载后用 SiliconFlow 免费 ASR 转成简体中文文案”
+- 覆盖公众号、X/Twitter、YouTube 和 B站
+- 支持本地标题库检索与相似骨架复用
+- 记录选择与反馈，让标题方法持续迭代
 
-### hy-3d-gen
+**适合说：**“给这篇公众号文章生成 30 个标题，并推荐最佳标题。”
 
-腾讯混元生3D模型生成技能。
+### 🐦 [twitter-monitor](./twitter-monitor)
 
-适用于：
-- 用文本描述生成 3D 模型
-- 用图片 URL 或 Base64 参考图生成 3D 模型
-- 多视角图生 3D、PBR 材质、白模、草图生成、智能拓扑生成
-- 默认通过 TokenHub/OpenAI 兼容接口调用，必要时显式回退腾讯云 SDK
+> 按账号抓取 X/Twitter 最新动态，输出结构化数据并按需同步飞书。
 
-使用：
-- “用 hy-3d-gen 生成一个水晶中国龙 3D 模型”
-- “用这张图片作为参考，生成 GLB 模型”
-- “查询这个混元 3D JobId 的结果”
+- 接受用户 ID、`@handle` 或主页 URL
+- 输出 JSON/CSV 和互动指标
+- 支持飞书多维表格及后续定时运行指导
 
-### scroll-promo-site-builder
+**适合说：**“抓取这 5 个 X 博主的最新推文，整理成 CSV。”
 
-滚动电影式产品动效网站生成技能。
+### 🎥 [video-downloader](./video-downloader)
 
-**定位：面向产品发布、软件产品和 AI/Agent 项目的动效网站生产工作流。核心关键词：动效、网站。**
+> 把视频平台链接整理成原视频、发布文案、音频转写和标准化元数据。
 
-适用于：
-- 把产品资料、参考网站或视频、品牌素材转成 4–7 幕连续视觉故事
-- 直接使用 `image2.0` 生成角色、设备、关键视觉和首尾帧
-- 直接使用 `Seedance 2.0` 生成场景视频与连接段
-- 用相邻视频真实渲染的首尾帧检查连续性，并选择直连、连接段、短溶解或重生成
-- 将审核后的连续视频映射到页面滚动进度，向下滚动前进、向上滚动倒放
-- 生成 Vite + React + TypeScript 动效网站，并提供静态移动端、减少动效和视频失败降级
-- 输出源码、本地预览包、macOS/Windows 启动脚本和验收清单
+- 支持抖音、B站、YouTube 和小红书
+- 区分平台原始文案与视频 ASR 转写
+- 视频号暂用微信小程序「kg百宝箱」作为下载前置
 
-与 [`oso95/scroll-world`](https://github.com/oso95/scroll-world) 的关系：
-- 本 Skill 借鉴了其滚动驱动视频、真实边界帧连接、短 GOP 编码等核心方法
-- `scroll-world` 更偏 Higgsfield 驱动的可滚动 3D 世界和多片段原生 JS 引擎
-- 本 Skill 更偏产品叙事、直接模型调用、React 单视频时间线、项目审核与本地交付
-- 上游采用 MIT License；本目录保留了完整来源、版权和许可声明
+**适合说：**“下载这个抖音视频，同时提取原始文案和口播稿。”
 
-使用：
-- “用 scroll-promo-site-builder 把这个产品做成有电影感的动效网站”
-- “参考这个视频，做一个滚动控制画面前进和倒放的产品网站”
-- “检查这些场景视频的首尾帧，补齐连接段并打包本地预览”
+### 📚 [book-illustration-workflow](./book-illustration-workflow)
 
-### viral-topic
+> 把一章书稿的截图规划、图号命名、正文回填和飞书同步串成稳定流程。
 
-多平台起号选题与爆款内容发现技能。
+- 生成章节截图总表和实操提示词
+- 统一图号、文件名与原文插入位置
+- 清理作者备注并同步读者版正文
 
-适用于：
-- 从公众号、X/Twitter、B站、YouTube 找近期爆款内容作为选题参考
-- 公众号按“阅读数超过账号月均阅读 2 倍且阅读量不低于 1 万”判断爆款
-- X/Twitter 与 B站保留低粉爆款逻辑，优先找内容表现明显超过作者粉丝规模的样本
-- YouTube 只做近期爆款筛选，不默认做低订阅过滤
-- 输出跨平台选题表，保留来源链接、账号/作者指标、时间窗口和爆款证据
+**适合说：**“按书稿截图流程，把这一章需要的图全部规划出来。”
 
-内含子 skill：
-- `wechat-viral-topic`
-- `x-viral-topic`
-- `bilibili-viral-topic`
-- `youtube-viral-topic`
+### 🏗️ [harness-engineering](./harness-engineering)
 
-使用：
-- “用 viral-topic 找 AI Agent 最近的起号选题”
-- “帮我找公众号和 X 的低粉爆款参考”
-- “看一下 B站和 YouTube 最近有什么爆款选题”
+> 为新项目一键建立规划、生成、评估和文档维护协同的开发框架。
 
-### viral-title
+- 初始化 Plan-Build-Verify 工作流
+- 提供 Agent、命令、Hooks 和项目文档结构
+- 适合长周期、需要自验证的 AI 开发任务
 
-多平台爆款标题生成技能。
+**适合说：**“给这个项目初始化 Harness Engineering。”
 
-适用于：
-- 给公众号、X/Twitter、YouTube、B站内容批量生成标题或首帖 Hook
-- 按统一方法论生成第一阶段 30 个标题，并推荐最佳标题
-- 按平台调性生成差异化标题：公众号标题、X Hook、YouTube 标题+缩略图字、B站标题+封面字+标签
-- 从本地爆款标题库里检索相似标题骨架，套用到当前内容
-- 根据用户最终选择、改稿、评分和反馈持续进化
+### 🧭 [task-harness](./task-harness)
 
-附带：
-- 公众号、X、YouTube、B站平台方法论
-- 公众号 AI/科技爆款标题库与多平台标题骨架库
-- 标题样本检索脚本
-- 标题会话记录、反馈记录、反馈分析和种子评估脚本
-- 共享机制关键词表，避免脚本关键词漂移
+> 把复杂需求拆成有验收标准和状态记录的长任务系统，减少 Agent 跑偏和断档。
 
-使用：
-- “用 viral-title 给这篇公众号文章起标题”
-- “给这个 YouTube 视频生成标题和缩略图字”
-- “把这篇内容改成 B站标题包装”
-- “套用标题库，给我 10 个 X Hook”
+- 生成结构化任务清单与唯一状态文件
+- 强调测试、提交和可恢复执行
+- 适合多会话开发与持续任务追踪
 
-## 关联项目
+**适合说：**“把这个需求拆成一个能让 Agent 连续执行的任务系统。”
 
-### cangjie-skill
+### 🌱 [reshape-your-life](./reshape-your-life)
 
-[cangjie-skill](https://github.com/kangarooking/cangjie-skill) 是把书的方法论蒸馏成可调用 AI Skills 的生成器工作流。
+> 从使命、身份、信念、能力、行为和环境六个层次重新梳理人生方向。
 
-它适用于：
-- 把一本书从普通摘要变成可触发、可组合、可测试的 skill 工具包
-- 使用 RIA-TV++ 流水线完成整书理解、并行提取、三重验证、RIA++ 构造、Zettelkasten 链接和压力测试
-- 为高价值书籍生成 `BOOK_OVERVIEW.md`、`INDEX.md`、多个独立 `SKILL.md` 和测试 prompts
-- 作为更大的 skill 生态中的“蒸馏书”模块，与蒸馏人的 `nuwa-skill`、进化 skill 的 `darwin-skill` 配合使用
+- 适合迷茫、方向不明或陷入重复执行循环时使用
+- 从顶层使命向下落到具体行动
+- 使用 NLP 理解层次进行结构化引导
 
-## 如何贡献
+**适合说：**“我最近很忙但没有方向，帮我重新梳理人生。”
 
-欢迎提交新的 Skills！请确保每个技能包含：
-- `SKILL.md` - 技能定义文档
-- `references/` - 相关参考资料（可选）
+---
 
-## 许可
+## 🔗 关联项目
 
-MIT License
+### [cangjie-skill](https://github.com/kangarooking/cangjie-skill)
+
+把书的方法论蒸馏成可触发、可组合、可测试的 AI Skills。它负责“从书里生产 Skill”，这里负责集中收纳和开源已经跑通的 Skill。
+
+---
+
+## 🤝 贡献
+
+欢迎提交新的 Skill。建议每个目录至少包含：
+
+- `SKILL.md`：技能定义和执行流程
+- `references/`：需要按需加载的参考资料（可选）
+- `scripts/`：需要稳定复用的自动化脚本（可选）
+- `assets/`：模板和交付资源（可选）
+
+## 📄 许可
+
+除各 Skill 另有说明外，本仓库原创内容按 MIT License 开源；引用或改编的第三方内容以对应目录中的 `LICENSE`、`NOTICE` 或归属说明为准。
