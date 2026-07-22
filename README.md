@@ -14,7 +14,7 @@
   <img alt="Agent Compatible" src="https://img.shields.io/badge/Agent-Compatible-3b82f6?style=flat-square">
 </p>
 
-这些 Skill 都是在真实项目里跑过、改过、踩过坑之后留下来的，不是为了凑数量做的 Demo。每个目录都是 Agent 可以直接读取的结构化工作流，包含 `SKILL.md`，复杂任务还会配套脚本、参考资料和可复用模板。
+每个目录都是 Agent 可以直接读取的结构化工作流，包含 `SKILL.md`，复杂任务还会配套脚本、参考资料和可复用模板。
 
 适用于 Claude Code、Codex，以及其他支持 [Agent Skills](https://agentskills.io/) 开放标准的 Agent。
 
