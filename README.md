@@ -15,6 +15,7 @@ kangarooking-skills/
 ├── multi-agent-image/        # 多 Agent 图片生成工作流
 ├── twitter-monitor/          # X/Twitter 博主推文抓取与可选飞书同步
 ├── video-downloader/         # 多平台视频下载、原始发布文案提取与 ASR 转写
+├── scroll-promo-site-builder/ # 滚动电影式产品动效网站生成、连续性审核与本地交付
 ├── hy-3d-gen/                # 腾讯混元生3D TokenHub/OpenAI 兼容接口生成 3D 模型
 ├── viral-topic/              # 多平台起号选题与爆款内容发现
 ├── viral-title/              # 多平台爆款标题生成与自进化标题库
@@ -142,6 +143,32 @@ X/Twitter 博主最新推文抓取技能。
 - “用 hy-3d-gen 生成一个水晶中国龙 3D 模型”
 - “用这张图片作为参考，生成 GLB 模型”
 - “查询这个混元 3D JobId 的结果”
+
+### scroll-promo-site-builder
+
+滚动电影式产品动效网站生成技能。
+
+**定位：面向产品发布、软件产品和 AI/Agent 项目的动效网站生产工作流。核心关键词：动效、网站。**
+
+适用于：
+- 把产品资料、参考网站或视频、品牌素材转成 4–7 幕连续视觉故事
+- 直接使用 `image2.0` 生成角色、设备、关键视觉和首尾帧
+- 直接使用 `Seedance 2.0` 生成场景视频与连接段
+- 用相邻视频真实渲染的首尾帧检查连续性，并选择直连、连接段、短溶解或重生成
+- 将审核后的连续视频映射到页面滚动进度，向下滚动前进、向上滚动倒放
+- 生成 Vite + React + TypeScript 动效网站，并提供静态移动端、减少动效和视频失败降级
+- 输出源码、本地预览包、macOS/Windows 启动脚本和验收清单
+
+与 [`oso95/scroll-world`](https://github.com/oso95/scroll-world) 的关系：
+- 本 Skill 借鉴了其滚动驱动视频、真实边界帧连接、短 GOP 编码等核心方法
+- `scroll-world` 更偏 Higgsfield 驱动的可滚动 3D 世界和多片段原生 JS 引擎
+- 本 Skill 更偏产品叙事、直接模型调用、React 单视频时间线、项目审核与本地交付
+- 上游采用 MIT License；本目录保留了完整来源、版权和许可声明
+
+使用：
+- “用 scroll-promo-site-builder 把这个产品做成有电影感的动效网站”
+- “参考这个视频，做一个滚动控制画面前进和倒放的产品网站”
+- “检查这些场景视频的首尾帧，补齐连接段并打包本地预览”
 
 ### viral-topic
 

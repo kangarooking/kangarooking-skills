@@ -1,0 +1,7 @@
+interface:
+  display_name: "滚动电影式动效网站"
+  short_description: "从产品资料生成滚动电影式动效网站、视频素材与本地交付包"
+  default_prompt: "Use $scroll-promo-site-builder to turn this product into a scroll-controlled cinematic promo website."
+
+policy:
+  allow_implicit_invocation: true

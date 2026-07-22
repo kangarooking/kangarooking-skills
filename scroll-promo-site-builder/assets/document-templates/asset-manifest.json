@@ -1,0 +1,19 @@
+{
+  "project": "__PROJECT_NAME__",
+  "models": {
+    "images": "image2.0",
+    "videos": "Seedance 2.0"
+  },
+  "assets": [
+    {
+      "id": "scene-01-first-frame",
+      "role": "first-frame",
+      "model": "image2.0",
+      "prompt": "assets/prompts/scene-01-image.md",
+      "references": [],
+      "output": "assets/design/scene-01-first-frame.png",
+      "status": "pending",
+      "review": ""
+    }
+  ]
+}
