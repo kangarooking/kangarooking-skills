@@ -1,0 +1,11 @@
+{
+  "width": 1280,
+  "height": 720,
+  "fps": 30,
+  "crf": 20,
+  "clips": [
+    { "path": "assets/video/scenes/scene-01.mp4", "transition_after": 0 },
+    { "path": "assets/video/connectors/connector-01.mp4", "transition_after": 0.5 },
+    { "path": "assets/video/scenes/scene-02.mp4", "transition_after": 0 }
+  ]
+}
