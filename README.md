@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/kangarooking/kangarooking-skills/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/kangarooking/kangarooking-skills?style=for-the-badge&logo=github&color=ffb000"></a>
-  <img alt="Skills" src="https://img.shields.io/badge/Skills-13-10b981?style=for-the-badge">
+  <img alt="Skills" src="https://img.shields.io/badge/Skills-16-10b981?style=for-the-badge">
   <img alt="Agent Skills" src="https://img.shields.io/badge/Agent_Skills-Standard-7c3aed?style=for-the-badge">
 </p>
 
@@ -26,6 +26,9 @@
 | --- | --- | --- |
 | 🎨 [apimart-image-gen](./apimart-image-gen) | 通过 APIMart 调用 GPT-Image-2，生成、轮询并下载图片 | 图片生成 |
 | 🧩 [multi-agent-image](./multi-agent-image) | 用设计编译、多 Agent 协作和案例库完成系列图片生产 | 图片生成 |
+| 🖼️ [cover-skill](./cover-skill) | 从标题、摘要、头像和产品素材生成四套封面方向，再适配五种平台比例 | 视觉设计 |
+| 📰 [shijing-paper-zine](./shijing-paper-zine) | 把日常照片转成克制、留白充足的纸刊编辑视觉 | 视觉设计 |
+| 🏪 [storefront-to-brand-system](./storefront-to-brand-system) | 从真实店铺照片提炼可落地的品牌、空间、包装和社媒系统 | 品牌设计 |
 | 🐉 [hy-3d-gen](./hy-3d-gen) | 通过腾讯混元生成文生 3D、图生 3D 和 PBR 模型 | 3D 生成 |
 | 🎬 [scroll-promo-site-builder](./scroll-promo-site-builder) | 把产品做成滚动控制、电影感强的动效网站 | 动效网站 |
 | ✍️ [ai-article-daily](./ai-article-daily) | 从 AI 热点选题到公众号文章日更的一套完整流程 | 内容生产 |
@@ -91,6 +94,36 @@ cp -R kangarooking-skills/<skill-name> ~/.claude/skills/
 - 适合 Hermes 等需要多阶段交互的 Agent 环境
 
 **适合说：**“参考这套风格，生成 6 张视觉统一的系列配图。”
+
+### 🖼️ [cover-skill](./cover-skill)
+
+> 从标题、摘要、头像、Logo 和产品素材出发，先探索四套完整封面方向，再把选中的方向重构到五种平台比例。
+
+- Stage 1 固定输出 A–D 四套 16:9 方向，供用户选择
+- Stage 2 原生适配公众号、B站、抖音、4:3 横版和 3:4 竖版
+- 用确定性排版保住中文文案、真人面部与真实 Logo，并附带导出校验脚本
+
+**适合说：**“用这个标题、摘要和头像先做四套短视频封面方向，我选完再适配全平台。”
+
+### 📰 [shijing-paper-zine](./shijing-paper-zine)
+
+> 把普通照片转成安静克制的纸刊编辑页，在保留原场景关系的同时，用撕纸、留白、简化线稿和单一结构色重组画面。
+
+- 覆盖日常、人物、宠物、食物、室内、街道、建筑和旅行照片
+- 区分像素保真与生成式重构，身份关键内容默认保真
+- 支持单张海报、三图系列、系列封面和原图对比交付
+
+**适合说：**“把这张日常街拍做成拾景纸刊风格，人物保持不变，只重构周围的纸张和线稿。”
+
+### 🏪 [storefront-to-brand-system](./storefront-to-brand-system)
+
+> 从真实店铺照片出发，诊断经营与空间关系，再把可解释的视觉概念扩展成门店、包装与社媒品牌系统。
+
+- 保留门窗、入口、陈列和建筑材料等真实空间锚点
+- 从店铺结构、产品轮廓与购买动作提炼 Logo 和辅助图形
+- 按顾客旅程选择真实会使用的物料，并保留 Logo 推导与 Before / After 证据
+
+**适合说：**“根据这张花店照片做一套可落地的品牌系统，保留原门店结构，并给出招牌、包装和开业主视觉。”
 
 ### 🐉 [hy-3d-gen](./hy-3d-gen)
 
