@@ -8,8 +8,8 @@ Passing file checks is necessary but not sufficient. Use `view_image` for full-s
 - The identity-preserving portrait-expression master was visually inspected before layout and matches the recorded emotion; a neutral or identity-drifted master fails.
 - All four use the exact title, summary, punctuation, and English capitalization.
 - A–D are meaningfully different; they are not one template recolored.
-- The title is the first hierarchy and immediately readable at 480×270.
-- The summary is secondary but remains readable with deliberate attention at 480×270.
+- The title is the first hierarchy and immediately readable at the resolved target review size.
+- The summary is secondary but remains readable with deliberate attention at the resolved target review size.
 - Line breaks follow semantic groups; no mid-word split, hanging punctuation, or strange one-character orphan appears.
 - No text, Logo, or decoration covers the eyes, eyebrows, nose, mouth, glasses, or central face area.
 - Any hair, shoulder, arm, mascot, or product overlap leaves every affected glyph unmistakable.
@@ -20,11 +20,11 @@ Passing file checks is necessary but not sufficient. Use `view_image` for full-s
 - All four concepts are centered or center-weighted. Internal asymmetry may vary, but a generic text-left/person-right split fails.
 - Title, portrait, kangaroo, and product subject share deliberate front/rear depth. A large isolated text panel plus unrelated stickers fails.
 - The product Logo is large enough to recognize and integrated into the subject, title lockup, product object, or a deliberate branded module; a tiny automatic corner badge fails.
-- The summary remains clearly readable at 480×270, normally with about 13 px or greater CJK glyph height.
+- The summary remains clearly readable at the resolved target review size, normally with about 11–13 px or greater CJK glyph height.
 - No gibberish, duplicated characters, fake Logo, invented function, or extra marketing claim is present.
 - Each concept fits the current theme and reference assets.
 - Delivery stops for A–D selection.
-- `qa-review.md` records one row per candidate with explicit PASS/FAIL for copy, expression, face safety, natural pet pose, physical contact, no pasted source, centered anchor, text-depth integration, product-Logo integration, and 480×270 readability. Every row must be PASS before delivery.
+- `qa-review.md` records one row per candidate with explicit PASS/FAIL for copy, expression, face safety, natural pet pose, physical contact, no pasted source, centered anchor, text-depth integration, product-Logo integration, and target-thumbnail readability. Every row must be PASS before delivery.
 
 ## Stage 2 gate
 
