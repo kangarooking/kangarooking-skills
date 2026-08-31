@@ -26,7 +26,7 @@
 | --- | --- | --- |
 | 🎨 [apimart-image-gen](./apimart-image-gen) | 通过 APIMart 调用 GPT-Image-2，生成、轮询并下载图片 | 图片生成 |
 | 🧩 [multi-agent-image](./multi-agent-image) | 用设计编译、多 Agent 协作和案例库完成系列图片生产 | 图片生成 |
-| 🖼️ [cover-skill](./cover-skill) | 从标题、摘要、头像和产品素材生成四套封面方向，再适配五种平台比例 | 视觉设计 |
+| 🖼️ [cover-skill](./cover-skill) | 用真人头像与袋鼠 IP 建立个人视觉签名，先探索四套封面，再适配五种平台比例 | 视觉设计 |
 | 📰 [shijing-paper-zine](./shijing-paper-zine) | 把日常照片转成克制、留白充足的纸刊编辑视觉 | 视觉设计 |
 | 🏪 [storefront-to-brand-system](./storefront-to-brand-system) | 从真实店铺照片提炼可落地的品牌、空间、包装和社媒系统 | 品牌设计 |
 | 🐉 [hy-3d-gen](./hy-3d-gen) | 通过腾讯混元生成文生 3D、图生 3D 和 PBR 模型 | 3D 生成 |
@@ -97,13 +97,14 @@ cp -R kangarooking-skills/<skill-name> ~/.claude/skills/
 
 ### 🖼️ [cover-skill](./cover-skill)
 
-> 从标题、摘要、头像、Logo 和产品素材出发，先探索四套完整封面方向，再把选中的方向重构到五种平台比例。
+> 围绕创作者的真人头像、袋鼠 IP、Logo 和产品素材，先建立稳定的个人视觉签名，再探索四套封面并重构到五种平台比例。
 
-- Stage 1 固定输出 A–D 四套 16:9 方向，供用户选择
+- Stage 1 先生成人物与袋鼠自然接触的一体化主视觉，再输出 A–D 四套 16:9 方向
+- 所有方案保持真人身份、袋鼠 IP 与居中主体规则，禁止直接裁切粘贴原始 IP 图
 - Stage 2 原生适配公众号、B站、抖音、4:3 横版和 3:4 竖版
-- 用确定性排版保住中文文案、真人面部与真实 Logo，并附带导出校验脚本
+- 用确定性排版保住中文文案与真实 Logo，并附带逐图 QA 和导出校验脚本
 
-**适合说：**“用这个标题、摘要和头像先做四套短视频封面方向，我选完再适配全平台。”
+**适合说：**“用我的真人头像和袋鼠 IP，先做四套封面方向，我选完再适配全平台。”
 
 ### 📰 [shijing-paper-zine](./shijing-paper-zine)
 
