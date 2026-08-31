@@ -1,6 +1,9 @@
 interface:
   display_name: "Cover Skill"
   short_description: "根据标题、摘要与参考图探索四种封面，并将选中方案适配五种平台比例"
-  default_prompt: "使用 $cover-skill 逐字保留标题和摘要，先展示恰好 4 个封面方案并停下等待我选择 A–D；选案只绑定当前主题，新标题、摘要或 APP 身份出现时重新探索四案，选中后再适配五种平台比例。"
+  icon_small: "./assets/cover-skill-icon-400.png"
+  icon_large: "./assets/cover-skill-logo.svg"
+  brand_color: "#5964F2"
+  default_prompt: "使用 $cover-skill 逐字保留标题和摘要，先生成 4 案；袋鼠必须像宠物一样自然趴肩或趴头，有爪部承重、遮挡、接触阴影和一致光影，禁止裁切原 IP 图贴到人物旁，等我选中后再适配五种比例。"
 policy:
   allow_implicit_invocation: true

@@ -12,6 +12,7 @@ Use 1920×1080 for all four Stage 1 concepts so comparison occurs on one fixed 1
 - `candidate-D.png`
 - `contact-sheet.png`
 - `manifest.json`
+- `qa-review.md`
 
 Also create these review thumbnails without replacing the full-resolution files:
 
@@ -39,8 +40,11 @@ Do not make four outputs from one layout by recoloring, swapping a texture, or m
 ## Constant content across A–D
 
 - exact title and summary;
-- same supplied portrait and recognizable expression intent;
+- same visually approved portrait-expression master derived from the supplied portrait;
+- only visually approved integrated portrait-pet master(s), derived from that expression master and the raw IP identity reference;
 - same required product and personal identity assets;
+- the same topic-driven expression class (`surprised`, `questioning`, or `surprised-questioning`);
+- a pet kangaroo naturally bearing weight on the creator's shoulder or head, with believable paws/body occlusion, contact shadow, and cloth or hair compression;
 - same factual claims;
 - same face exclusion and thumbnail-readability standard.
 
@@ -49,18 +53,22 @@ Typography can move in front of or behind the subject, but it must not cover the
 ## Recommended production order
 
 1. Inspect the portrait, APP screenshot, Logos, and personal IP separately.
-2. Record exact copy and semantic line groups before rendering.
-3. Draft four layout maps and color/type rationales.
-4. Generate or edit four no-copy base scenes independently.
-5. Reuse the real portrait and Logos; composite exact title and summary deterministically.
-6. Inspect each at full size and 480×270.
-7. Create the contact sheet and manifest, then run export validation.
+2. Record exact copy, semantic line groups, and the topic-driven portrait expression before rendering.
+3. Create one identity-preserving portrait-expression master, then inspect it with `view_image`. Reject a neutral or identity-drifted master before any layout work.
+4. Generate one or two integrated portrait-pet masters—`shoulder` and/or `head`—from the approved expression master plus the raw IP as character reference. Inspect every master with `view_image`. Reject any cropped/pasted original pose, free-standing body, floating gap, face obstruction, absent paw/body support, implausible occlusion, missing contact shadow/compression, or mismatched light/perspective.
+5. Draft four layout maps and color/type rationales. For the owner's covers, also record subject anchor, selected pet-master hash and pose, physical-contact evidence, text-subject depth plan, and Logo integration; all four concepts must be centered or center-weighted.
+6. Generate or edit four no-copy base scenes independently.
+7. Reuse only the approved integrated portrait-pet master(s) and real Logos; composite exact title and summary deterministically. Never add the raw `IP-logo` bitmap as a separate layer.
+8. Inspect every candidate at full size and 480×270 using `view_image`; do not substitute code-only pixel checks.
+9. Create the contact sheet, manifest, and `qa-review.md` per-concept PASS/FAIL table, then run export validation. Never infer visual PASS from manifest booleans alone.
 
 ## Manifest minimum schema
 
 `manifest.json` is a JSON object containing:
 
 - `phase`: exactly `concepts`;
+- `personal_signature_applies`: exactly `true`;
+- `product_logo_required`: boolean; set `true` whenever a real product Logo is supplied or discoverable;
 - `product_identity`: non-empty APP, product, or topic identity string;
 - `topic_id`: canonical lowercase SHA-256 of compact sorted-key JSON containing exact `title`, exact `summary`, `product_identity`, and the sorted SHA-256 values of assets marked `topic_key: true`;
 - `run_id`: non-empty unique identifier for this exploration run;
@@ -68,7 +76,9 @@ Typography can move in front of or behind the subject, but it must not cover the
 - `semantic_groups`: non-empty array of the exact title groups used for layout;
 - `assets`: array of input asset records with `role`, `path`, `usage` (`required-visible` or `reference-only`), `topic_key` boolean, and actual file `sha256`; product or APP identity assets normally use `topic_key: true`, reusable personal identity assets normally use `false`;
 - `contact_sheet_panels`: exactly the four candidate filenames;
-- `outputs`: exactly four records with `id` A–D, `file`, file `sha256`, `width`, `height`, `font`, `line_groups`, `prompt_notes`, and a `qa` object recording copy, face, thumbnail, and required-asset checks.
+- `portrait_expression_master`: object containing its `path`, actual `sha256`, and the shared `expression_intent`;
+- `pet_companion_masters`: non-empty array of approved combined-subject records. Each has `pose` (`shoulder` or `head`), `path`, actual `sha256`, `source_portrait_sha256`, `source_ip_sha256`, `integration_method` exactly `generated-integrated`, and non-empty `generation_notes`;
+- `outputs`: exactly four records with `id` A–D, `file`, file `sha256`, `width`, `height`, `font`, `line_groups`, `prompt_notes`, `expression_intent`, `subject_anchor`, `mascot_relationship`, `pet_pose`, `pet_master_sha256`, `pet_contact_evidence`, `text_subject_integration`, `logo_integration`, and a `qa` object. `pet_contact_evidence` has exact non-empty string keys `support_surface`, `paws_or_body_occlusion`, `contact_shadow_or_compression`, and `lighting_perspective_match`. The exact QA boolean keys are `copy_checked`, `face_safe`, `thumbnail_readable`, `required_assets_visible`, `portrait_expression_checked`, `mascot_integrated`, `pet_pose_natural_checked`, `pet_contact_checked`, `no_sticker_treatment_checked`, `text_subject_integrated`, `product_logo_integrated`, and `personal_signature_checked`.
 
 ## Response at the selection gate
 
