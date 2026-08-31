@@ -36,7 +36,7 @@ These are hard identity rules for the owner's recurring creator covers. They alw
 ## Copy hierarchy
 
 - The title is the dominant reading target. The first title sentence or primary clause receives the largest type; later qualification may be smaller but still belongs to the headline.
-- The summary is clearly secondary, not footnote-sized. At a 480×270 review thumbnail, its CJK glyph height should normally be at least about 13 px and the entire sentence must be readable without zooming.
+- The summary is clearly secondary, not footnote-sized. At the resolved target review thumbnail, its CJK glyph height should normally be about 11–13 px or greater and the entire sentence must remain readable with deliberate attention; use the upper end when space permits.
 - Choose type color, weight, width, outline, texture, and shadow from the current topic and uploaded product visual language. Yellow is not a default.
 
 ## Product Logo integration

@@ -4,7 +4,20 @@ The goal is four suitable design hypotheses, not one template in four colors.
 
 ## Canvas and files
 
-Use 1920×1080 for all four Stage 1 concepts so comparison occurs on one fixed 16:9 canvas. Export:
+All four Stage 1 concepts use the same resolved target so comparison remains fair. Resolve it before layout using this strict priority: explicit ratio, explicit platform, then generic `16:9` only when neither was supplied.
+
+| `stage1_target.key` | Ratio | Full size | Review thumbnail |
+|---|---:|---:|---:|
+| `wechat` | 21:9 | 2100×900 | 420×180 |
+| `bilibili` | 16:9 | 1920×1080 | 480×270 |
+| `douyin` | 9:16 | 1080×1920 | 270×480 |
+| `landscape-4x3` | 4:3 | 1600×1200 | 400×300 |
+| `portrait-3x4` | 3:4 | 1200×1600 | 360×480 |
+| `generic-16x9` | 16:9 | 1920×1080 | 480×270 |
+
+Platform aliases include 公众号/微信/WeChat, B站/Bilibili, and 抖音/Douyin. A request for a 公众号封面 therefore yields four 2100×900 candidates and four 420×180 review thumbnails. Do not generate 16:9 candidates first and call later adaptation sufficient.
+
+Export:
 
 - `candidate-A.png`
 - `candidate-B.png`
@@ -14,12 +27,12 @@ Use 1920×1080 for all four Stage 1 concepts so comparison occurs on one fixed 1
 - `manifest.json`
 - `qa-review.md`
 
-Also create these review thumbnails without replacing the full-resolution files:
+Also create review thumbnails without replacing the full-resolution files. Insert the resolved thumbnail dimensions in each filename:
 
-- `thumbs/candidate-A-480x270.png`
-- `thumbs/candidate-B-480x270.png`
-- `thumbs/candidate-C-480x270.png`
-- `thumbs/candidate-D-480x270.png`
+- `thumbs/candidate-A-<width>x<height>.png`
+- `thumbs/candidate-B-<width>x<height>.png`
+- `thumbs/candidate-C-<width>x<height>.png`
+- `thumbs/candidate-D-<width>x<height>.png`
 
 Put A–D labels in the response or contact-sheet frame, not inside the individual cover artwork.
 
@@ -59,7 +72,7 @@ Typography can move in front of or behind the subject, but it must not cover the
 5. Draft four layout maps and color/type rationales. For the owner's covers, also record subject anchor, selected pet-master hash and pose, physical-contact evidence, text-subject depth plan, and Logo integration; all four concepts must be centered or center-weighted.
 6. Generate or edit four no-copy base scenes independently.
 7. Reuse only the approved integrated portrait-pet master(s) and real Logos; composite exact title and summary deterministically. Never add the raw `IP-logo` bitmap as a separate layer.
-8. Inspect every candidate at full size and 480×270 using `view_image`; do not substitute code-only pixel checks.
+8. Inspect every candidate at full size and at the resolved target review size using `view_image`; do not substitute code-only pixel checks.
 9. Create the contact sheet, manifest, and `qa-review.md` per-concept PASS/FAIL table, then run export validation. Never infer visual PASS from manifest booleans alone.
 
 ## Manifest minimum schema
@@ -67,6 +80,7 @@ Typography can move in front of or behind the subject, but it must not cover the
 `manifest.json` is a JSON object containing:
 
 - `phase`: exactly `concepts`;
+- `stage1_target`: object with exactly `key`, `ratio`, and `origin`. `key` is one target key from the table above, `ratio` matches that row, and `origin` is exactly `explicit-platform`, `explicit-ratio`, or `default`; `default` is valid only for `generic-16x9`;
 - `personal_signature_applies`: exactly `true`;
 - `product_logo_required`: boolean; set `true` whenever a real product Logo is supplied or discoverable;
 - `product_identity`: non-empty APP, product, or topic identity string;

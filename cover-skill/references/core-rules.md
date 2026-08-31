@@ -5,7 +5,7 @@ These rules stay fixed across topics. The visible style does not.
 ## Universal invariants
 
 - Reproduce the title and summary exactly. Do not silently shorten, rewrite, normalize punctuation, change English capitalization, or invent marketing claims.
-- The title is the largest, fastest-read text. The summary is clearly secondary but remains readable when a 16:9 cover is previewed at 480×270; on portrait outputs, also inspect at phone-feed size.
+- The title is the largest, fastest-read text. The summary is clearly secondary but remains readable at the resolved target review size; on portrait outputs, also inspect at phone-feed size.
 - Break lines by meaning, never merely by remaining character count. Keep product names, technical terms, English words, and paired punctuation intact. Do not leave punctuation stranded at the start of a line or create an ambiguous one-character orphan.
 - Protect facial identity. Nothing may cover the eyes, eyebrows, nose, mouth, glasses, or the central face-recognition area.
 - Keep the real portrait identity, kangaroo character identity, product screenshot, and Logo recognizable. The kangaroo may be re-posed only inside an integrated portrait-pet master; never regenerate or fake a supplied Logo.

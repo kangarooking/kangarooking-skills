@@ -29,7 +29,41 @@ CONCEPT_FILES = {
     "candidate-D.png": "D",
 }
 
-CONCEPT_SIZE = (1920, 1080)
+STAGE1_TARGETS = {
+    "wechat": {
+        "ratio": "21:9",
+        "size": (2100, 900),
+        "thumb_size": (420, 180),
+    },
+    "bilibili": {
+        "ratio": "16:9",
+        "size": (1920, 1080),
+        "thumb_size": (480, 270),
+    },
+    "douyin": {
+        "ratio": "9:16",
+        "size": (1080, 1920),
+        "thumb_size": (270, 480),
+    },
+    "landscape-4x3": {
+        "ratio": "4:3",
+        "size": (1600, 1200),
+        "thumb_size": (400, 300),
+    },
+    "portrait-3x4": {
+        "ratio": "3:4",
+        "size": (1200, 1600),
+        "thumb_size": (360, 480),
+    },
+    "generic-16x9": {
+        "ratio": "16:9",
+        "size": (1920, 1080),
+        "thumb_size": (480, 270),
+    },
+}
+
+STAGE1_TARGET_FIELDS = {"key", "ratio", "origin"}
+STAGE1_TARGET_ORIGINS = {"explicit-platform", "explicit-ratio", "default"}
 
 SELECTED_FILES = {
     "cover-wechat-21x9.png": (2100, 900),
@@ -45,12 +79,6 @@ SUPPORT_FILES = {
 }
 
 THUMB_FILES = {
-    "concepts": {
-        "candidate-A-480x270.png": (480, 270),
-        "candidate-B-480x270.png": (480, 270),
-        "candidate-C-480x270.png": (480, 270),
-        "candidate-D-480x270.png": (480, 270),
-    },
     "selected": {
         "cover-wechat-21x9-420x180.png": (420, 180),
         "cover-bilibili-16x9-480x270.png": (480, 270),
@@ -302,10 +330,70 @@ def require_string_list(payload: dict, key: str, errors: list[str]) -> None:
         errors.append(f"invalid manifest field: {key}: expected a non-empty string array")
 
 
+def inspect_stage1_target(payload: dict, errors: list[str]) -> dict | None:
+    target = payload.get("stage1_target")
+    if not isinstance(target, dict):
+        errors.append("invalid manifest field: stage1_target: expected an object")
+        return None
+
+    actual_fields = set(target)
+    if actual_fields != STAGE1_TARGET_FIELDS:
+        missing = sorted(STAGE1_TARGET_FIELDS - actual_fields)
+        extra = sorted(actual_fields - STAGE1_TARGET_FIELDS)
+        errors.append(
+            "invalid manifest field: stage1_target keys: "
+            f"missing={missing}, extra={extra}"
+        )
+
+    key = target.get("key")
+    target_spec = STAGE1_TARGETS.get(key) if isinstance(key, str) else None
+    if target_spec is None:
+        errors.append(
+            "invalid manifest field: stage1_target.key: expected one of "
+            + ", ".join(sorted(STAGE1_TARGETS))
+        )
+        return None
+
+    if target.get("ratio") != target_spec["ratio"]:
+        errors.append(
+            f"invalid manifest field: stage1_target.ratio: expected "
+            f"{target_spec['ratio']!r} for {key!r}"
+        )
+
+    origin = target.get("origin")
+    if not isinstance(origin, str) or origin not in STAGE1_TARGET_ORIGINS:
+        errors.append(
+            "invalid manifest field: stage1_target.origin: expected "
+            "'explicit-platform', 'explicit-ratio', or 'default'"
+        )
+    elif origin == "default" and key != "generic-16x9":
+        errors.append(
+            "invalid manifest field: stage1_target.origin: "
+            "'default' is only valid for 'generic-16x9'"
+        )
+
+    return target_spec
+
+
+def concept_image_files(target_spec: dict | None) -> dict[str, tuple[int, int] | None]:
+    size = target_spec["size"] if target_spec is not None else None
+    return {name: size for name in CONCEPT_FILES}
+
+
+def concept_thumb_files(target_spec: dict | None) -> dict[str, tuple[int, int]]:
+    if target_spec is None:
+        return {}
+    width, height = target_spec["thumb_size"]
+    return {
+        f"candidate-{concept_id}-{width}x{height}.png": (width, height)
+        for concept_id in CONCEPT_FILES.values()
+    }
+
+
 def inspect_manifest(
     path: Path,
     phase: str,
-    expected_images: dict[str, tuple[int, int]],
+    expected_images: dict[str, tuple[int, int] | None],
 ) -> list[str]:
     payload, load_errors = load_manifest(path)
     if payload is None:
@@ -314,6 +402,9 @@ def inspect_manifest(
     errors: list[str] = []
     if payload.get("phase") != phase:
         errors.append(f"invalid manifest field: phase: expected {phase!r}")
+    if phase == "concepts":
+        target_spec = inspect_stage1_target(payload, errors)
+        expected_images = concept_image_files(target_spec)
     if payload.get("personal_signature_applies") is not True:
         errors.append("invalid manifest field: personal_signature_applies: expected true")
     if not isinstance(payload.get("product_logo_required"), bool):
@@ -564,9 +655,9 @@ def inspect_manifest(
             continue
         seen_files.add(filename)
         expected_size = expected_images.get(filename)
-        if expected_size is None:
+        if filename not in expected_images:
             errors.append(f"unexpected manifest output file: {filename}")
-        elif (
+        elif expected_size is not None and (
             output.get("width") != expected_size[0]
             or output.get("height") != expected_size[1]
         ):
@@ -816,10 +907,11 @@ def validate_source_binding(
     if source_payload is None:
         errors.extend(source_load_errors)
         return errors
+    source_target_spec = inspect_stage1_target(source_payload, [])
     source_contract_errors = inspect_manifest(
         source_manifest_path,
         "concepts",
-        {name: CONCEPT_SIZE for name in CONCEPT_FILES},
+        concept_image_files(source_target_spec),
     )
     errors.extend(f"source manifest: {error}" for error in source_contract_errors)
     if source_payload.get("phase") != "concepts":
@@ -922,11 +1014,16 @@ def validate(
     errors: list[str] = []
     checked: list[str] = []
 
-    expected_images: dict[str, tuple[int, int]] = (
-        {name: CONCEPT_SIZE for name in CONCEPT_FILES}
-        if phase == "concepts"
-        else SELECTED_FILES
-    )
+    target_spec = None
+    if phase == "concepts":
+        manifest_payload, _ = load_manifest(directory / "manifest.json")
+        if manifest_payload is not None:
+            target_spec = inspect_stage1_target(manifest_payload, [])
+        expected_images = concept_image_files(target_spec)
+        expected_thumbs = concept_thumb_files(target_spec)
+    else:
+        expected_images = SELECTED_FILES
+        expected_thumbs = THUMB_FILES[phase]
     for name, expected in expected_images.items():
         checked.append(name)
         errors.extend(inspect_png(directory / name, expected))
@@ -946,10 +1043,22 @@ def validate(
         errors.append("--source-manifest is only valid with --phase selected")
 
     thumbs_dir = directory / "thumbs"
-    for name, expected in THUMB_FILES[phase].items():
+    for name, expected in expected_thumbs.items():
         relative = f"thumbs/{name}"
         checked.append(relative)
         errors.extend(inspect_png(thumbs_dir / name, expected))
+
+    if phase == "concepts" and target_spec is not None:
+        actual_thumbs = {
+            path.name for path in thumbs_dir.glob("candidate-*.png") if path.is_file()
+        }
+        if actual_thumbs != set(expected_thumbs):
+            extras = sorted(actual_thumbs - set(expected_thumbs))
+            missing = sorted(set(expected_thumbs) - actual_thumbs)
+            if extras:
+                errors.append(f"unexpected thumbnail files: {', '.join(extras)}")
+            if missing:
+                errors.append(f"missing thumbnail files: {', '.join(missing)}")
 
     pattern = "candidate-*.png" if phase == "concepts" else "cover-*.png"
     actual_primary = {path.name for path in directory.glob(pattern) if path.is_file()}
