@@ -10,6 +10,10 @@ from pathlib import Path
 from time import strftime
 from urllib.parse import urlparse
 
+from .safety import artifact_basename, sanitize_url
+from .media_options import format_selector, quality_filename
+from subtitles import fetch_platform_subtitles
+
 
 PLATFORM = "youtube"
 
@@ -30,8 +34,12 @@ def fetch(url: str, output_root: Path, *, metadata_only: bool = False, **options
     post_caption_path.write_text(caption, encoding="utf-8")
 
     video_path = None
+    subtitle_result = {'status': 'skipped'}
     if not metadata_only:
-        video_path = _download_video(url, folder, _safe_filename(metadata.get("title"), item_id))
+        if options.get('prefer_subtitles', True):
+            subtitle_result = fetch_platform_subtitles(metadata, folder, language=options.get('asr_language', 'auto'))
+        quality = options.get('download_quality', '1080p')
+        video_path = _download_video(url, folder, quality_filename(_safe_filename(metadata.get("title"), item_id), quality), quality=quality)
 
     normalized = _normalize_metadata(
         url,
@@ -49,6 +57,7 @@ def fetch(url: str, output_root: Path, *, metadata_only: bool = False, **options
 
     return {
         "platform": PLATFORM,
+        "platform_subtitles": subtitle_result,
         "id": item_id,
         "output_dir": str(folder),
         "video_path": str(video_path) if video_path else None,
@@ -66,26 +75,26 @@ def fetch(url: str, output_root: Path, *, metadata_only: bool = False, **options
 
 def _extract_metadata(url: str) -> dict:
     commands = [
-        _base_ytdlp_command() + ["--dump-single-json", url],
-        _base_ytdlp_command() + ["--remote-components", "ejs:github", "--dump-single-json", url],
+        _base_ytdlp_command() + ["--write-subs", "--write-auto-subs", "--dump-single-json", url],
+        _base_ytdlp_command() + ["--remote-components", "ejs:github", "--write-subs", "--write-auto-subs", "--dump-single-json", url],
         _base_ytdlp_command()
-        + ["--cookies-from-browser", "chrome", "--dump-single-json", url],
+        + ["--cookies-from-browser", "chrome", "--write-subs", "--write-auto-subs", "--dump-single-json", url],
     ]
     return json.loads(_run_first_successful(commands))
 
 
-def _download_video(url: str, folder: Path, filename: str) -> Path:
+def _download_video(url: str, folder: Path, filename: str, *, quality: str = '1080p') -> Path:
     output_path = folder / filename
     commands = [
-        _download_command(output_path) + [url],
-        _download_command(output_path, remote_components=True) + [url],
-        _download_command(output_path, cookies=True) + [url],
+        _download_command(output_path, quality=quality) + [url],
+        _download_command(output_path, remote_components=True, quality=quality) + [url],
+        _download_command(output_path, cookies=True, quality=quality) + [url],
     ]
     _run_first_successful(commands, timeout=1200)
     if output_path.exists():
         return output_path
 
-    matches = sorted(folder.glob(f"{output_path.stem}.*"))
+    matches = sorted(p for p in folder.glob(f"{output_path.stem}.*") if p.suffix.lower() in ('.mp4', '.mkv', '.webm', '.mov'))
     if matches:
         return matches[0]
     raise RuntimeError("yt-dlp reported success but no downloaded YouTube video file was found.")
@@ -104,6 +113,7 @@ def _download_command(
     *,
     remote_components: bool = False,
     cookies: bool = False,
+    quality: str = '1080p',
 ) -> list[str]:
     command = _base_ytdlp_command()
     if remote_components:
@@ -113,7 +123,7 @@ def _download_command(
     command.extend(
         [
             "-f",
-            "bv*+ba/b",
+            format_selector(quality),
             "--merge-output-format",
             "mp4",
             "-o",
@@ -136,8 +146,8 @@ def _normalize_metadata(
     height = metadata.get("height")
     return {
         "platform": PLATFORM,
-        "source_url": source_url,
-        "final_url": metadata.get("webpage_url") or metadata.get("original_url"),
+        "source_url": sanitize_url(source_url),
+        "final_url": sanitize_url(metadata.get("webpage_url") or metadata.get("original_url")),
         "fetched_at": strftime("%Y-%m-%dT%H:%M:%S%z"),
         "id": item_id,
         "caption": caption,
@@ -148,7 +158,7 @@ def _normalize_metadata(
         "author": {
             "nickname": metadata.get("uploader") or metadata.get("channel"),
             "id": metadata.get("uploader_id") or metadata.get("channel_id"),
-            "url": metadata.get("uploader_url") or metadata.get("channel_url"),
+            "url": sanitize_url(metadata.get("uploader_url") or metadata.get("channel_url")),
         },
         "video": {
             "width": width,
@@ -161,10 +171,9 @@ def _normalize_metadata(
         },
         "download": {
             "method": "yt_dlp",
-            "video_path": str(video_path) if video_path else None,
+            "video_path": artifact_basename(video_path),
             "metadata_only": metadata_only,
         },
-        "raw_ytdlp_metadata": metadata,
     }
 
 

@@ -35,7 +35,7 @@
 | 🔥 [viral-topic](./viral-topic) | 跨公众号、X、B站和 YouTube 寻找近期爆款选题 | 内容增长 |
 | 🧲 [viral-title](./viral-title) | 为公众号、X、YouTube 和 B站批量生成高潜标题 | 内容增长 |
 | 🐦 [twitter-monitor](./twitter-monitor) | 抓取 X/Twitter 博主动态并按需同步到飞书多维表格 | 信息监控 |
-| 🎥 [video-downloader](./video-downloader) | 下载多平台原视频，提取原始文案、元数据和 ASR 转写 | 素材处理 |
+| 🎥 [video-downloader](./video-downloader) | 下载视频号、B站、YouTube、抖音和小红书视频，结合字幕、ASR 与三种视觉模式生成多模态文案 | 素材处理 |
 | 📚 [book-illustration-workflow](./book-illustration-workflow) | 管理书稿截图、配图、回填和飞书同步 | 写书工作流 |
 | 🏗️ [harness-engineering](./harness-engineering) | 为项目初始化 Plan-Build-Verify Harness Engineering 框架 | Agent 工程 |
 | 🧭 [task-harness](./task-harness) | 把长任务拆成可追踪、可验证、可恢复的任务系统 | Agent 工程 |

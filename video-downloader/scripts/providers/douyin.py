@@ -13,6 +13,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, urlparse
 from urllib.request import Request, urlopen
 
+from .safety import artifact_basename, sanitize_url
+
 
 PLATFORM = "douyin"
 
@@ -107,9 +109,9 @@ def _fetch_h5(
             download_method = "yt_dlp_fallback"
             download_error = str(exc)
         metadata["download"] = {
-            "video_path": str(video_path),
+            "video_path": artifact_basename(video_path),
             "method": download_method,
-            "primary_error": download_error,
+            "primary_route_failed": bool(download_error),
             "endpoint": "https://aweme.snssdk.com/aweme/v1/play/"
             if download_method == "douyin_h5_nowm"
             else None,
@@ -167,8 +169,8 @@ def _fetch_with_ytdlp(
 
     normalized = {
         "platform": PLATFORM,
-        "source_url": url,
-        "final_url": metadata.get("webpage_url"),
+        "source_url": sanitize_url(url),
+        "final_url": sanitize_url(metadata.get("webpage_url")),
         "fetched_at": strftime("%Y-%m-%dT%H:%M:%S%z"),
         "id": aweme_id,
         "caption": caption,
@@ -184,11 +186,10 @@ def _fetch_with_ytdlp(
         },
         "download": {
             "method": "yt_dlp_fallback",
-            "video_path": str(video_path) if video_path else None,
+            "video_path": artifact_basename(video_path),
             "metadata_only": metadata_only,
-            "primary_error": primary_error,
+            "primary_route_failed": bool(primary_error),
         },
-        "raw_ytdlp_metadata": metadata,
     }
 
     metadata_path = folder / "metadata.json"
@@ -349,8 +350,8 @@ def _normalize_metadata(
 
     return {
         "platform": PLATFORM,
-        "source_url": source_url,
-        "final_url": final_url,
+        "source_url": sanitize_url(source_url),
+        "final_url": sanitize_url(final_url),
         "fetched_at": strftime("%Y-%m-%dT%H:%M:%S%z"),
         "id": str(item.get("aweme_id") or ""),
         "group_id": str(item.get("group_id_str") or ""),
@@ -380,8 +381,6 @@ def _normalize_metadata(
             "duration_seconds": round(duration_ms / 1000, 3)
             if isinstance(duration_ms, (int, float))
             else None,
-            "play_addr": video.get("play_addr"),
-            "cover": video.get("cover"),
         },
         "statistics": item.get("statistics") or {},
         "risk_infos": item.get("risk_infos") or {},
