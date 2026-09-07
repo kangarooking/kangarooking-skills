@@ -4,14 +4,11 @@ from __future__ import annotations
 
 from urllib.parse import urlparse
 
-from . import bilibili, douyin, xiaohongshu, youtube
+from . import bilibili, douyin, local_file, wechat_channels, xiaohongshu, youtube
 
 
-IMPLEMENTED_PROVIDERS = [douyin, bilibili, youtube, xiaohongshu]
-
-PLANNED_DOMAINS = {
-    "wechat_channels": ("channels.weixin.qq.com", "weixin.qq.com", "video.weixin.qq.com"),
-}
+IMPLEMENTED_PROVIDERS = [douyin, bilibili, youtube, xiaohongshu, wechat_channels]
+PLANNED_DOMAINS = {}
 
 
 def detect_provider(url: str):
@@ -19,6 +16,10 @@ def detect_provider(url: str):
         if provider.supports(url):
             return provider
     return None
+
+
+def detect_local_provider(source: str):
+    return local_file if local_file.supports(source) else None
 
 
 def planned_provider_for(url: str) -> str | None:
