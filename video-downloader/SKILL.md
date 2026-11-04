@@ -1,9 +1,9 @@
 ---
 name: video-downloader
-description: Download or open videos and recover platform captions, audio transcripts, keyframes, screen text, visual facts, and editing observations as a plain multimodal_transcript.md. Use for Douyin, Bilibili, YouTube, Xiaohongshu, experimental WeChat Channels links, or local video files when preparing complete source material for analysis or downstream Skill distillation.
+description: Download or open videos and recover platform captions, audio transcripts, keyframes, screen text, visual facts, and editing observations with Doubao or LongCat-2.5 as a plain multimodal_transcript.md. Use for Douyin, Bilibili, YouTube, Xiaohongshu, experimental WeChat Channels links, or local video files when preparing complete source material for analysis or downstream Skill distillation.
 ---
 
-# Video Downloader 2.0
+# Video Downloader 2.1
 
 ## Boundary
 
@@ -15,7 +15,7 @@ video link or local file
 → usable timed platform subtitles, otherwise cloud ASR
 → choose keyframes / full-video / Agent clips
 → preview and confirm each exact cloud payload
-→ Doubao image or native-video understanding
+→ Doubao or LongCat-2.5 image/native-video understanding
 → timestamped plain Markdown
 ```
 
@@ -34,6 +34,7 @@ Optional:
 - `SILICONFLOW_API_KEY` for cloud ASR.
 - Local `whisper` CLI for offline ASR.
 - `ARK_API_KEY` for Doubao visual understanding.
+- `LONGCAT_API_KEY` for LongCat-2.5 visual understanding.
 - Playwright for first-time interactive WeChat Channels authorization.
 
 ## Speed defaults and quality tradeoffs
@@ -43,7 +44,7 @@ Optional:
 - `--asr auto` prefers usable timed platform subtitles (human-labelled before automatic). Without subtitles, use SiliconFlow. Automatic subtitles and ASR can both make mistakes: neither is inherently the most accurate for every video. Use `--no-platform-subtitles` or `--asr siliconflow` to force a fresh audio transcription.
 - Cloud ASR uses approximately 60-second chunks, cuts near silence when possible, preserves all audio time, and runs at most four requests concurrently. These are audio recognition chunks, **not** the 10-minute visual chunk limit.
 - Agent scene detection runs alongside speech processing at 384px / 4fps and is cached. This is a coarse selection aid, not OCR input or a complete shot inventory.
-- CLI native-video concurrency defaults to four. Prepared clips use up to 720p, 12 encoded fps, fast encoding and compressed audio. Provider sampling remains 0.5fps by default; small text and fast MV cuts can still need higher sampling or dedicated keyframes.
+- CLI native-video concurrency defaults to four. Prepared clips use up to 720p, 12 encoded fps, fast encoding and compressed audio. For Doubao, `--vision-video-fps` controls provider-side sampling and defaults to 0.5fps. LongCat does not expose an equivalent control; it decides its own sampling, so dense small text and fast MV cuts may still need keyframes or shorter clips.
 - `--vision-thinking disabled` avoids deep-reasoning latency for Agent selection and native-video analysis. `auto` or `enabled` can be requested explicitly. This does not change keyframe image requests. Video requests allow up to 16,384 output tokens; incomplete responses are failures, not usable completed results.
 - Progress identifies each processing stage and each cloud chunk. `timings.json` records actual wall-clock times and whether the run met a 600-second target. Overlapping stage times must not be summed blindly. Ten minutes is a test target, not a promise for arbitrary video lengths, networks or API queues.
 - Agent selection prioritizes distinct techniques and demonstrations over repeated advertising. If the initial plan leaves source time unselected, one additional text-model request reviews omissions using the same source material; the reviewed plan is cached. The final Markdown lists unselected visual ranges. Selected-duration coverage is not information accuracy or completeness.
@@ -123,11 +124,49 @@ Protocol references:
 
 The supplied API key is never written to the repository, upload plan, metadata, logs, or Markdown output. If a key has ever been pasted into a chat or document, rotate it in Volcano Ark and keep only the replacement in `ARK_API_KEY`.
 
+## Configure LongCat-2.5 Vision
+
+Select LongCat explicitly with `--vision longcat`. The implementation uses the OpenAI-compatible endpoint `POST https://api.longcat.ai/openai/v1/chat/completions` and defaults both image/text selection and video analysis to `LongCat-2.5`.
+
+Images are encoded locally as Base64 `data:` URLs and sent in standard `image_url` blocks. The implementation enforces the documented 10 MB per-image and 50-images-per-request limits; the CLI default remains four images per request.
+
+```bash
+export LONGCAT_API_KEY="replace-with-your-key"
+```
+
+LongCat accepts video only through a reachable HTTP(S) URL. For a local full-video proxy or Agent-selected clip, this skill uploads the prepared MP4 to Uguu with `POST https://uguu.se/upload`, reads the returned `https://...` URL, and sends it in a `video_url` block. Uguu requires no API key. Its official site currently states a 128 MiB upload limit and automatic deletion after about three hours.
+
+Uguu is public temporary hosting: anyone who obtains or guesses the returned URL can download the file while it exists, and this workflow cannot actively delete it early. Do not use LongCat video mode through Uguu for confidential, private, personal, unpublished, or access-controlled media. Use `keyframes`, `--vision none`, or another user-controlled public-URL provider for such material. The ordinary cloud-upload confirmation explicitly lists Uguu as an additional recipient.
+
+Alibaba Bailian's free temporary-file feature is not used here: it returns a private `oss://...` identifier that DashScope resolves with `X-DashScope-OssResourceResolve: enable`, not the ordinary public HTTP(S) URL required by `api.longcat.ai`.
+
+LongCat video limits enforced by this skill:
+
+- each prepared video must be below LongCat's stricter 100 MB limit, even though Uguu accepts up to 128 MiB;
+- each video must be shorter than 3600 seconds;
+- the workflow still defaults to 600-second chunks and at most four concurrent requests;
+- LongCat decides its own internal frame sampling, so `--vision-video-fps` applies only to Doubao.
+
+Minimal image request shape:
+
+```bash
+curl https://api.longcat.ai/openai/v1/chat/completions \
+  -H "Authorization: Bearer $LONGCAT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "LongCat-2.5",
+    "messages": [{"role": "user", "content": [
+      {"type": "text", "text": "这张图片里有什么？"},
+      {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,<BASE64_DATA>"}}
+    ]}]
+  }'
+```
+
 ## Quick Start
 
 Run from this skill directory.
 
-A platform URL with ASR and Doubao vision:
+A platform URL with ASR and automatic visual-provider selection:
 
 ```bash
 python3 scripts/download_video.py "https://www.youtube.com/watch?v=..." \
@@ -138,9 +177,11 @@ python3 scripts/download_video.py "https://www.youtube.com/watch?v=..." \
   --profile knowledge
 ```
 
-When reliable timestamped ASR exists, this interactive command previews and confirms two cloud boundaries independently: first the timestamped transcript, platform caption, and scene index used for Agent selection; then the exact selected video clips. If no reliable timestamped transcript exists, selection falls back to local scene signals and only the clip upload requires confirmation. In automation, `--confirm-cloud-upload` is one up-front authorization for every Doubao stage in that run; it is not two separate human confirmations.
+`--vision auto` prefers Doubao when `ARK_API_KEY` exists, otherwise LongCat when `LONGCAT_API_KEY` exists. Use `--vision longcat` or `--vision doubao` for deterministic provider selection.
 
-`--vision-plan-only` blocks Doubao visual requests only. `--asr auto` may already have sent audio to SiliconFlow when `SILICONFLOW_API_KEY` is set. Use `--asr whisper` or `--asr none` when the planning run itself must remain fully local.
+When reliable timestamped ASR exists, this interactive command previews and confirms two cloud boundaries independently: first the timestamped transcript, platform caption, and scene index used for Agent selection; then the exact selected video clips. If no reliable timestamped transcript exists, selection falls back to local scene signals and only the clip upload requires confirmation. In automation, `--confirm-cloud-upload` is one up-front authorization for every visual-provider stage in that run; it is not two separate human confirmations.
+
+`--vision-plan-only` blocks visual-provider requests only. `--asr auto` may already have sent audio to SiliconFlow when `SILICONFLOW_API_KEY` is set. Use `--asr whisper` or `--asr none` when the planning run itself must remain fully local.
 
 A local video:
 
@@ -154,6 +195,19 @@ python3 scripts/download_video.py "/absolute/path/demo.mp4" \
   --vision-mode keyframes \
   --profile tech
 ```
+
+A local video with LongCat keyframe analysis needs only `LONGCAT_API_KEY`:
+
+```bash
+python3 scripts/download_video.py "/absolute/path/demo.mp4" \
+  --output-dir ./downloads \
+  --asr none \
+  --vision longcat \
+  --vision-mode keyframes \
+  --profile tech
+```
+
+For `--vision-mode full-video` or `agent-clips`, confirm that the prepared material is suitable for temporary public hosting on Uguu.
 
 Download platform text and metadata only:
 
@@ -186,9 +240,9 @@ When visual analysis is enabled, the user must choose one mode. The skill must n
 
 In an interactive terminal, omitting `--vision-mode` opens a three-choice menu and recommends `agent-clips`. In a non-interactive run, omitting it exits with code 2. `--metadata-only` and `--vision none` remain exempt.
 
-`keyframes` and `full-video` write and display `vision_plan.json` before their Doubao request. `agent-clips` first writes `vision_selection_plan.json`; only after selection and local cutting can it write the second-stage `vision_plan.json` with exact clip paths, sizes, and durations. No Doubao request occurs until the user answers `y`, or automation passes `--confirm-cloud-upload` as one up-front authorization for all Doubao stages.
+`keyframes` and `full-video` write and display `vision_plan.json` before their provider request. `agent-clips` first writes `vision_selection_plan.json`; only after selection and local cutting can it write the second-stage `vision_plan.json` with exact clip paths, sizes, and durations. No visual-provider request occurs until the user answers `y`, or automation passes `--confirm-cloud-upload` as one up-front authorization for all visual stages.
 
-Use `--vision-plan-only` to prepare all currently feasible local visual artifacts and stop before any Doubao request. In Agent mode it stops at `vision_selection_plan.json` when cloud text selection would be required, so it cannot show the exact second-stage clip plan in advance. When there is no usable timestamped text, the local scene-fallback can still cut candidates and write the exact second-stage `vision_plan.json` before stopping. This flag does not disable an earlier SiliconFlow ASR request; select local Whisper or disable ASR for a fully local planning run.
+Use `--vision-plan-only` to prepare all currently feasible local visual artifacts and stop before any visual-provider request. In Agent mode it stops at `vision_selection_plan.json` when cloud text selection would be required, so it cannot show the exact second-stage clip plan in advance. When there is no usable timestamped text, the local scene-fallback can still cut candidates and write the exact second-stage `vision_plan.json` before stopping. This flag does not disable an earlier SiliconFlow ASR request; select local Whisper or disable ASR for a fully local planning run.
 
 ### 1. Keyframes
 
@@ -214,7 +268,7 @@ python3 scripts/download_video.py "/absolute/path/video.mp4" \
   --vision-plan-only
 ```
 
-The skill prepares H.264/AAC video without uploading the original file. Sources longer than `--vision-max-clip-seconds` (default 600) are cut directly into continuous chunks under `vision/clips/`; 25 minutes becomes 10 + 10 + 5 minutes. There is no total-duration or Agent-candidate cap in full-video mode. Shorter sources use `vision/full-video-proxy.mp4` at up to 1280×720 and 12 encoded fps. Both paths use `--vision-concurrency` (CLI default 4), per-chunk checkpoints, and source-order merging. The plan lists every prepared file and its real size/duration; valid cached results are reused rather than uploaded again. `--vision-video-fps 0.5` controls provider sampling, not encoding. A short-source proxy still has the 480 MB local cap; prepared clips are subject to the Files API size check.
+The skill prepares H.264/AAC video without uploading the original file. Sources longer than `--vision-max-clip-seconds` (default 600) are cut directly into continuous chunks under `vision/clips/`; 25 minutes becomes 10 + 10 + 5 minutes. There is no total-duration or Agent-candidate cap in full-video mode. Shorter sources use `vision/full-video-proxy.mp4` at up to 1280×720 and 12 encoded fps. Both paths use `--vision-concurrency` (CLI default 4), provider-scoped per-chunk checkpoints, and source-order merging. The plan lists every prepared file and its real size/duration; valid cached results are reused rather than uploaded again. For Doubao, `--vision-video-fps 0.5` controls provider sampling, not encoding; LongCat controls sampling internally. A short-source proxy still has the 480 MB local cap, while the chosen provider's upload limit is enforced separately (Doubao Files API 512 MB; LongCat 100 MB per video).
 
 ### 3. Agent clips (recommended)
 
@@ -233,7 +287,7 @@ python3 scripts/download_video.py "/absolute/path/video.mp4" \
 
 The selection model receives the complete timestamped transcript, platform caption, duration, and scene timestamps. It should consider silent demonstrations/B-roll and opening/ending context, not just speech. Returned ranges are validated, clamped, padded and merged. `--vision-max-clips 8` caps candidate intervals before splitting, not the number of execution chunks. The default `--vision-max-total-clip-seconds 0` adds no total-duration cap: all selected time is split into chunks up to 600 seconds, so a selected 25-minute interval becomes 10 + 10 + 5, and a 95-minute interval can produce 10 chunks. An explicit positive total budget may truncate selections; omitted ranges are reported in warnings and the final Markdown, including any lost ending. Each prepared clip retains AAC when the source has audio.
 
-The second preview lists those exact clips before native-video analysis. Multiple clips are analyzed with bounded four-way concurrency by CLI default; progress is printed as `[current/total]`, results are restored to source order, and every clip independently uploads, analyzes, and deletes its cloud file. Use `--vision-concurrency 1` for serial processing or up to `4` when the account's rate limits allow it. `--vision-video-fps` controls provider-side frame sampling for each clip, not clip encoding or frame-by-frame inspection.
+The second preview lists those exact clips before native-video analysis. Multiple clips are analyzed with bounded four-way concurrency by CLI default; progress is printed as `[current/total]`, results are restored to source order, and every clip independently uploads and analyzes. Doubao attempts immediate file deletion; Uguu has no early-delete step and keeps the public temporary file until automatic expiry. Use `--vision-concurrency 1` for serial processing or up to `4` when the provider's rate limits allow it. `--vision-video-fps` controls Doubao-side frame sampling for each clip, not clip encoding or frame-by-frame inspection; LongCat ignores it.
 
 Progress distinguishes upload/preprocessing, model analysis, received-record count, and cleanup. `[i/total]` identifies the clip, not the number completed: clip 2 may finish before clip 1. Final records are sorted by original-video timestamps even if a model returns segments out of order. A provider response explicitly marked incomplete is reported as an error, even if it contains parseable JSON.
 
@@ -244,12 +298,12 @@ When ASR was requested but is pending or failed, Agent mode waits for a complete
 Useful controls:
 
 ```text
---vision auto|doubao|none
+--vision auto|doubao|longcat|none
 --vision-mode keyframes|full-video|agent-clips
 --vision-plan-only
 --confirm-cloud-upload
---vision-model doubao-seed-evolving
---vision-video-model doubao-seed-evolving
+--vision-model <provider model; defaults to doubao-seed-evolving or LongCat-2.5>
+--vision-video-model <provider video model; defaults to doubao-seed-evolving or LongCat-2.5>
 --vision-video-fps 0.5
 --vision-frame-interval 10
 --vision-max-frames 24
@@ -264,7 +318,7 @@ Useful controls:
 --force-reprocess
 ```
 
-If `ARK_API_KEY` is missing, feasible local preparation still completes: keyframes or the complete-video proxy can be created, and Agent mode can at least produce its selection plan or scene-based fallback materials where applicable. Vision status becomes `partial`, and the Markdown reports the information gap instead of pretending cloud visual analysis succeeded.
+If the selected provider key (`ARK_API_KEY` or `LONGCAT_API_KEY`) is missing, feasible local preparation still completes: keyframes or the complete-video proxy can be created, and Agent mode can at least produce its selection plan or scene-based fallback materials where applicable. Vision status becomes `partial`, and the Markdown reports the information gap instead of pretending cloud visual analysis succeeded.
 
 ### Profiles
 
@@ -438,7 +492,7 @@ The provider refreshes metadata and the expiring play URL on every run, but a va
 ## Failure States
 
 - `done`: requested stage completed.
-- `planned`: local artifacts and an upload plan were created, but the Doubao request was not started.
+- `planned`: local artifacts and an upload plan were created, but the visual-provider request was not started.
 - `partial`: useful artifacts exist, but a backend or frame batch was unavailable.
 - `failed`: the stage could not produce usable output.
 - `skipped`: disabled by the user or not applicable.
@@ -450,7 +504,7 @@ Do not infer completion from file presence alone. Check overall `status`, `asr.s
 - Download only material the user owns, has permission to download, or may lawfully archive.
 - Do not bypass DRM, paid access, private permissions, or platform access controls.
 - Temporary signed video URLs, raw WeChat API profiles, cookies, Bearer tokens, and API keys are excluded from public artifacts.
-- Depending on the chosen mode, keyframes, a compressed video proxy, timestamped transcript/caption/scene timestamps, or selected clips are sent to Volcano Ark only after interactive confirmation or the non-interactive run's up-front `--confirm-cloud-upload` authorization. Agent mode has two separately previewed Doubao stages in interactive use; the automation flag pre-authorizes both. Use `--vision-plan-only` to inspect the currently available visual scope and `--vision none` for material that must never be sent to a visual provider.
+- Depending on the chosen mode and backend, keyframes, a compressed video proxy, timestamped transcript/caption/scene timestamps, or selected clips are sent to Volcano Ark or LongCat only after interactive confirmation or the non-interactive run's up-front `--confirm-cloud-upload` authorization. LongCat video files are first published to Uguu's temporary public hosting and remain there until automatic expiry, currently about three hours. Agent mode has two separately previewed provider stages in interactive use; the automation flag pre-authorizes both. Use `--vision-plan-only` to inspect the currently available visual scope and `--vision none` for material that must never be sent to a visual provider.
 - `--vision-plan-only` does not govern SiliconFlow ASR. Use local Whisper or disable ASR when no source audio or transcript may leave the machine.
-- Cloud-file deletion is best-effort. Review reported cleanup errors; do not assume a failed delete removed the file before its configured expiry.
+- Doubao cloud-file deletion is best-effort; review reported cleanup errors. Uguu files cannot be deleted early by this workflow and remain publicly reachable until the service expires them, currently after about three hours.
 - Creator analysis may extract general methods, but should not clone a person's voice, face, copyrighted assets, or frame-by-frame creative expression without permission.

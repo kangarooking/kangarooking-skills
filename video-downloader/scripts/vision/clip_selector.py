@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 import json
 from pathlib import Path
+from typing import Callable
 from .cache import result_path, read_result, write_result
 
 
@@ -70,8 +71,10 @@ def select_important_ranges(
     force: bool = False,
     thinking: str = 'disabled',
     progress=None,
+    request_json: Callable[..., dict] | None = None,
+    backend: str = "doubao",
 ) -> tuple[list[dict], list[str], str]:
-    """Ask Doubao to select ranges, with an honest scene-only fallback."""
+    """Ask the selected text model to choose ranges, with a scene-only fallback."""
     timestamped = [
         item
         for item in transcript_segments
@@ -115,20 +118,21 @@ def select_important_ranges(
         max_clips=max_clips,
         max_total_seconds=max_total_seconds,
     )
-    from .doubao import request_text_json
+    if request_json is None:
+        from .doubao import request_text_json as request_json
 
     def request_selection(prompt_text):
         try:
-            return request_text_json(prompt_text, model=model, thinking=thinking)
+            return request_json(prompt_text, model=model, thinking=thinking)
         except RuntimeError as exc:
             if 'not a valid JSON object' not in str(exc):
                 raise
             if progress: progress('Agent：返回格式无效，按严格 JSON 格式重试一次')
-            return request_text_json(prompt_text + '\n格式纠正：必须返回合法JSON；键名使用双引号，键值之间用冒号，'
+            return request_json(prompt_text + '\n格式纠正：必须返回合法JSON；键名使用双引号，键值之间用冒号，'
                 '例如 {"clips":[{"start_ms":0,"end_ms":1000,"reason":"演示","evidence":"原文","priority":9}]}。'
                 '不要用等号代替冒号。只输出对象，不加解释。', model=model, thinking=thinking)
 
-    checkpoint = result_path(cache_dir, {'model': model, 'prompt': prompt, 'thinking': thinking, 'version': 3}) if cache_dir else None
+    checkpoint = result_path(cache_dir, {'backend': backend, 'model': model, 'prompt': prompt, 'thinking': thinking, 'version': 4}) if cache_dir else None
     payload = read_result(checkpoint) if checkpoint and not force else None
     if not payload:
         if progress: progress('Agent：分析完整文案，生成初步选段')
@@ -157,7 +161,7 @@ def select_important_ranges(
         progress('Agent：复用已完成的选段及遗漏复核')
     raw_ranges = payload.get("clips")
     if not isinstance(raw_ranges, list):
-        raise RuntimeError("Doubao Agent selection response did not include a clips array.")
+        raise RuntimeError(f"{backend} Agent selection response did not include a clips array.")
     clips, warnings = normalize_clip_ranges(
         raw_ranges,
         duration_seconds=duration_seconds,
@@ -168,7 +172,7 @@ def select_important_ranges(
         max_total_seconds=max_total_seconds,
     )
     if not clips:
-        raise RuntimeError("Doubao Agent selection did not produce any usable clip ranges.")
+        raise RuntimeError(f"{backend} Agent selection did not produce any usable clip ranges.")
     if checkpoint:
         write_result(checkpoint, payload)
     return clips, warnings, "agent"

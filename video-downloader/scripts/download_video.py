@@ -18,7 +18,6 @@ from media_probe import probe_video
 from providers import detect_local_provider, detect_provider, planned_provider_for
 from text_renderer import render_multimodal_transcript
 from vision import run_vision
-from vision.doubao import DOUBAO_DEFAULT_VIDEO_MODEL
 from vision.frame_sampler import detect_scene_timestamps
 from subtitles import use_platform_subtitles
 from vision.interaction import VisionInteractionError, choose_vision_mode
@@ -36,7 +35,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument('--asr-chunk-seconds', type=float, default=60, help='Cloud ASR audio chunk duration. Default: 60')
     parser.add_argument('--asr-concurrency', type=int, choices=range(1, 5), default=4)
     parser.add_argument('--vision-thinking', choices=('disabled', 'auto', 'enabled'), default='disabled',
-                        help='Doubao selection/native-video reasoning mode. Default: disabled')
+                        help='Doubao selection/native-video reasoning mode; LongCat ignores this option. Default: disabled')
     parser.add_argument(
         "--output-dir",
         default="downloads",
@@ -138,9 +137,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--vision",
-        choices=("auto", "doubao", "none"),
+        choices=("auto", "doubao", "longcat", "none"),
         default="auto",
-        help="Visual understanding backend. auto uses Doubao when ARK_API_KEY is set.",
+        help=(
+            "Visual understanding backend. auto prefers Doubao when ARK_API_KEY is set, "
+            "then LongCat when LONGCAT_API_KEY is set."
+        ),
     )
     parser.add_argument(
         "--vision-mode",
@@ -155,7 +157,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--vision-plan-only",
         action="store_true",
         help=(
-            "Prepare and print the visual upload plan without calling Doubao visual or "
+            "Prepare and print the visual upload plan without calling the visual or "
             "selection models. Earlier SiliconFlow ASR, if selected, is unaffected."
         ),
     )
@@ -163,28 +165,28 @@ def build_parser() -> argparse.ArgumentParser:
         "--confirm-cloud-upload",
         action="store_true",
         help=(
-            "Explicitly authorize the planned Doubao upload in non-interactive runs. "
+            "Explicitly authorize the planned cloud upload in non-interactive runs. "
             "Inspect --vision-plan-only first when handling sensitive media."
         ),
     )
     parser.add_argument(
         "--vision-model",
-        default="doubao-seed-evolving",
-        help="Doubao keyframe and Agent-selection model. Default: doubao-seed-evolving",
+        default=None,
+        help="Keyframe and Agent-selection model. Defaults to the selected provider's standard model.",
     )
     parser.add_argument(
         "--vision-video-model",
-        default=os.environ.get("DOUBAO_VIDEO_MODEL", DOUBAO_DEFAULT_VIDEO_MODEL),
+        default=None,
         help=(
-            "Doubao native-video model for full-video and agent-clips. "
-            f"Default: DOUBAO_VIDEO_MODEL or {DOUBAO_DEFAULT_VIDEO_MODEL}"
+            "Native-video model for full-video and agent-clips. Defaults to the selected "
+            "provider's standard model; Doubao may use DOUBAO_VIDEO_MODEL."
         ),
     )
     parser.add_argument(
         "--vision-video-fps",
         type=float,
         default=0.5,
-        help="Files API video preprocessing sample rate, from 0.2 to 5. Default: 0.5",
+        help="Doubao Files API preprocessing sample rate, from 0.2 to 5; LongCat ignores it. Default: 0.5",
     )
     parser.add_argument(
         "--profile",
@@ -214,7 +216,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--vision-batch-size",
         type=int,
         default=4,
-        help="Keyframes per Doubao request. Default: 4",
+        help="Keyframes per visual-model request. Default: 4",
     )
     parser.add_argument(
         "--vision-prompt",
