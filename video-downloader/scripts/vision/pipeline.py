@@ -17,6 +17,7 @@ from .doubao import (
     analyze_frames,
     analyze_video_files,
 )
+from . import longcat as longcat_provider
 from .frame_sampler import detect_scene_timestamps, probe_duration, sample_frames
 from .interaction import confirm_cloud_upload
 from .planner import build_vision_plan, update_plan_confirmation, write_vision_plan
@@ -29,8 +30,8 @@ def run_vision(
     *,
     backend: str = "auto",
     mode: str = "keyframes",
-    model: str = DOUBAO_DEFAULT_MODEL,
-    video_model: str = DOUBAO_DEFAULT_VIDEO_MODEL,
+    model: str | None = None,
+    video_model: str | None = None,
     profile: str = "knowledge",
     interval_seconds: float = 10.0,
     max_frames: int = 24,
@@ -57,14 +58,27 @@ def run_vision(
 ) -> dict:
     if backend == "none":
         return {"status": "skipped", "backend": "none", "mode": mode, "frame_count": 0}
-    selected_backend = "doubao" if backend == "auto" else backend
-    if selected_backend != "doubao":
+    if backend == "auto":
+        selected_backend = (
+            "doubao" if os.environ.get("ARK_API_KEY")
+            else "longcat" if os.environ.get("LONGCAT_API_KEY")
+            else "doubao"
+        )
+    else:
+        selected_backend = backend
+    if selected_backend not in {"doubao", "longcat"}:
         return {
             "status": "failed",
             "backend": selected_backend,
             "mode": mode,
             "error": f"Unsupported vision backend: {selected_backend}",
         }
+    if selected_backend == "longcat":
+        model = model or longcat_provider.LONGCAT_DEFAULT_MODEL
+        video_model = video_model or longcat_provider.LONGCAT_DEFAULT_MODEL
+    else:
+        model = model or DOUBAO_DEFAULT_MODEL
+        video_model = video_model or os.environ.get("DOUBAO_VIDEO_MODEL", DOUBAO_DEFAULT_VIDEO_MODEL)
     stream = output or sys.stderr
     if mode == "keyframes":
         return _run_keyframes(
@@ -218,12 +232,12 @@ def _run_keyframes(
         update_plan_confirmation(plan, confirmed=False, status="planned")
         write_vision_plan(output_dir, plan)
         return {**base, "status": "planned", "visual_notes_path": None}
-    if not os.environ.get("ARK_API_KEY"):
+    if not _has_provider_key(backend):
         return {
             **base,
             "status": "partial",
             "visual_notes_path": None,
-            "error": "ARK_API_KEY is not set; keyframes and the upload plan were created, but nothing was uploaded.",
+            "error": _missing_key_error(backend, "keyframes and the upload plan were created"),
         }
     allowed = confirm_cloud_upload(
         plan,
@@ -240,7 +254,8 @@ def _run_keyframes(
         return {**base, "status": status, "visual_notes_path": None}
     update_plan_confirmation(plan, confirmed=True, status="in_progress")
     write_vision_plan(output_dir, plan)
-    notes, errors = analyze_frames(
+    analyze = analyze_frames if backend == "doubao" else longcat_provider.analyze_frames
+    notes, errors = analyze(
         frames,
         model=model,
         profile=profile,
@@ -300,9 +315,12 @@ def _run_full_video(
     items = []
     for chunk in chunks:
         media = chunk.get('media_probe') or {}
-        items.append({**chunk, 'kind': 'video', 'size_bytes': media.get('size_bytes') or _size(chunk['path']),
-                      'duration_seconds': media.get('duration_seconds') or (chunk['end_ms']-chunk['start_ms'])/1000,
-                      'contains_audio': bool(media.get('has_audio')), 'preprocess_fps': video_fps})
+        item = {**chunk, 'kind': 'video', 'size_bytes': media.get('size_bytes') or _size(chunk['path']),
+                'duration_seconds': media.get('duration_seconds') or (chunk['end_ms']-chunk['start_ms'])/1000,
+                'contains_audio': bool(media.get('has_audio'))}
+        if backend == "doubao":
+            item['preprocess_fps'] = video_fps
+        items.append(item)
     upload_items = list(items)
     if prompt:
         upload_items.append(
@@ -316,10 +334,18 @@ def _run_full_video(
         source_path=video_path,
         upload_items=upload_items,
         limits={'max_clip_seconds': max_clip_seconds, 'video_concurrency': video_concurrency},
-        limitations=[
-            "上传的是 720p H.264 视觉代理；源视频含音轨时保留 AAC。压缩可能损失微小文字或极快动作细节。",
-            f"模型预处理按 {video_fps:g} fps 采样，不等于逐帧观看，短动作与快速转场仍可能缺失。",
-        ],
+        limitations=(
+            [
+                "上传的是 720p H.264 视觉代理；源视频含音轨时保留 AAC。压缩可能损失微小文字或极快动作细节。",
+                f"模型预处理按 {video_fps:g} fps 采样，不等于逐帧观看，短动作与快速转场仍可能缺失。",
+            ]
+            if backend == "doubao"
+            else [
+                "上传的是 720p H.264 视觉代理；源视频含音轨时保留 AAC。压缩可能损失微小文字或极快动作细节。",
+                "LongCat 服务端自行决定视频抽帧策略；每个视频必须小于 100 MB、短于 3600 秒。",
+                "本地视频会上传到 Uguu 公网临时空间，并以 HTTPS URL 交给 LongCat；服务标注约 3 小时后自动删除，无法主动提前删除。",
+            ]
+        ),
     )
     plan_path = write_vision_plan(output_dir, plan)
     base = {
@@ -346,12 +372,12 @@ def _run_full_video(
         update_plan_confirmation(plan, confirmed=False, status="planned")
         write_vision_plan(output_dir, plan)
         return {**base, "status": "planned", "visual_notes_path": None}
-    if not os.environ.get("ARK_API_KEY"):
+    if not _has_provider_key(backend):
         return {
             **base,
             "status": "partial",
             "visual_notes_path": None,
-            "error": "ARK_API_KEY is not set; the complete-video proxy and upload plan were created, but nothing was uploaded.",
+            "error": _missing_key_error(backend, "the complete-video proxy and upload plan were created"),
         }
     allowed = confirm_cloud_upload(
         plan,
@@ -368,14 +394,15 @@ def _run_full_video(
         return {**base, "status": status, "visual_notes_path": None}
     update_plan_confirmation(plan, confirmed=True, status="in_progress")
     write_vision_plan(output_dir, plan)
-    notes, errors = analyze_video_files(
+    analyze = analyze_video_files if backend == "doubao" else longcat_provider.analyze_video_files
+    notes, errors = analyze(
         items,
         model=model,
         profile=profile,
         custom_prompt=prompt,
         fps=video_fps,
         concurrency=video_concurrency,
-        cache_dir=output_dir / 'vision' / 'analysis-cache',
+        cache_dir=output_dir / 'vision' / 'analysis-cache' / backend,
         force=force,
         thinking=thinking,
         progress=lambda message: print(message, file=output, flush=True),
@@ -494,13 +521,13 @@ def _run_agent_clips(
         write_vision_plan(output_dir, selection_plan, filename="vision_selection_plan.json")
         return {**base, "status": "planned", "vision_plan_path": str(selection_plan_path), "visual_notes_path": None}
     if timestamped:
-        if not os.environ.get("ARK_API_KEY"):
+        if not _has_provider_key(backend):
             return {
                 **base,
                 "status": "partial",
                 "vision_plan_path": str(selection_plan_path),
                 "visual_notes_path": None,
-                "error": "ARK_API_KEY is not set; the Agent selection plan was created, but the timestamped transcript was not uploaded.",
+                "error": _missing_key_error(backend, "the Agent selection plan was created"),
             }
         selection_allowed = confirm_cloud_upload(
             selection_plan,
@@ -534,6 +561,8 @@ def _run_agent_clips(
             force=force,
             thinking=thinking,
             progress=lambda message: print(message, file=output, flush=True),
+            request_json=(None if backend == "doubao" else longcat_provider.request_text_json),
+            backend=backend,
         )
         timings['selection_seconds'] = round(time.monotonic() - started, 3)
         print(f"选段完成（{timings['selection_seconds']}秒），开始准备 {len(clips)} 个本地视频片段", file=output, flush=True)
@@ -570,8 +599,7 @@ def _run_agent_clips(
     upload_items = []
     for item in clip_items:
         media = item.get("media_probe") or {}
-        upload_items.append(
-            {
+        upload_item = {
                 "kind": "video",
                 "id": item.get("id"),
                 "path": item.get("path"),
@@ -580,9 +608,10 @@ def _run_agent_clips(
                 "start_ms": item.get("start_ms"),
                 "end_ms": item.get("end_ms"),
                 "contains_audio": bool(media.get("has_audio")),
-                "preprocess_fps": video_fps,
             }
-        )
+        if backend == "doubao":
+            upload_item["preprocess_fps"] = video_fps
+        upload_items.append(upload_item)
     if prompt:
         upload_items.append(
             {"kind": "text", "label": "custom vision prompt", "character_count": len(prompt)}
@@ -598,8 +627,16 @@ def _run_agent_clips(
         limits=limits,
         limitations=[
             *warnings,
-            f"视频片段在源含音轨时保留 AAC；模型预处理按 {video_fps:g} fps 采样，不等于逐帧观看。",
-            f"最多同时分析 {video_concurrency} 个视频片段；每个片段仍独立上传、分析和删除。",
+            (
+                f"视频片段在源含音轨时保留 AAC；模型预处理按 {video_fps:g} fps 采样，不等于逐帧观看。"
+                if backend == "doubao"
+                else "视频片段在源含音轨时保留 AAC；LongCat 自行决定抽帧策略，每段必须小于 100 MB。"
+            ),
+            (
+                f"最多同时分析 {video_concurrency} 个视频片段；每个片段仍独立上传、分析和删除。"
+                if backend == "doubao"
+                else f"最多同时分析 {video_concurrency} 个片段；每段先上传到 Uguu 公网临时空间，约 3 小时后由服务自动删除。"
+            ),
         ],
     )
     plan_path = write_vision_plan(output_dir, plan)
@@ -628,12 +665,12 @@ def _run_agent_clips(
         update_plan_confirmation(plan, confirmed=False, status="planned")
         write_vision_plan(output_dir, plan)
         return {**prepared, "status": "planned", "visual_notes_path": None}
-    if not os.environ.get("ARK_API_KEY"):
+    if not _has_provider_key(backend):
         return {
             **prepared,
             "status": "partial",
             "visual_notes_path": None,
-            "error": "ARK_API_KEY is not set; clips were prepared locally but not uploaded.",
+            "error": _missing_key_error(backend, "clips were prepared locally"),
         }
     clips_allowed = confirm_cloud_upload(
         plan,
@@ -649,14 +686,15 @@ def _run_agent_clips(
         return {**prepared, "status": "skipped", "visual_notes_path": None}
     update_plan_confirmation(plan, confirmed=True, status="in_progress")
     write_vision_plan(output_dir, plan)
-    notes, errors = analyze_video_files(
+    analyze = analyze_video_files if backend == "doubao" else longcat_provider.analyze_video_files
+    notes, errors = analyze(
         clip_items,
         model=video_model,
         profile=profile,
         custom_prompt=prompt,
         fps=video_fps,
         concurrency=video_concurrency,
-        cache_dir=output_dir / 'vision' / 'analysis-cache',
+        cache_dir=output_dir / 'vision' / 'analysis-cache' / backend,
         force=force,
         thinking=thinking,
         progress=lambda message: print(message, file=output, flush=True),
@@ -675,6 +713,16 @@ def _analysis_status(notes: list[dict], errors: list[dict]) -> str:
     if notes:
         return "partial"
     return "failed"
+
+
+def _has_provider_key(backend: str) -> bool:
+    variable = "LONGCAT_API_KEY" if backend == "longcat" else "ARK_API_KEY"
+    return bool(os.environ.get(variable))
+
+
+def _missing_key_error(backend: str, completed: str) -> str:
+    variable = "LONGCAT_API_KEY" if backend == "longcat" else "ARK_API_KEY"
+    return f"{variable} is not set; {completed}, but nothing was sent to the visual model."
 
 
 def _write_jsonl(path: Path, records: list[dict]) -> None:

@@ -63,8 +63,10 @@ def format_upload_preview(plan: dict) -> str:
     """Render a concise upload preview suitable for stderr."""
     scope = plan.get("upload_scope") or {}
     mode = plan.get("mode") or "unknown"
+    backend = str(plan.get("backend") or "unknown")
+    provider_name = {"doubao": "火山方舟/豆包", "longcat": "美团 LongCat"}.get(backend, backend)
     lines = [
-        "即将把以下内容发送到火山方舟/豆包：",
+        f"即将把以下内容发送到{provider_name}：",
         f"- 模式：{mode}",
         f"- 阶段：{plan.get('stage') or 'vision'}",
         f"- 模型：{plan.get('model') or 'unknown'}",
