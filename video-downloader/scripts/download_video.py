@@ -53,8 +53,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--ratio",
-        default="1080p",
-        help="Provider-specific preferred video ratio/quality. Douyin default: 1080p",
+        help="Douyin quality preference. Defaults to 1080p on H5 and highest available on Jingxuan.",
     )
     parser.add_argument(
         "--no-yt-dlp-fallback",
@@ -299,7 +298,10 @@ def main(argv: list[str] | None = None) -> int:
             print(str(exc), file=sys.stderr)
             return 2
 
-    progress(f'下载与字幕检查：优先 {args.download_quality}')
+    if provider.__name__.endswith('.douyin'):
+        progress('下载与字幕检查：抖音')
+    else:
+        progress(f'下载与字幕检查：优先 {args.download_quality}')
     stage_started = time.monotonic()
     result = provider.fetch(
         args.source,

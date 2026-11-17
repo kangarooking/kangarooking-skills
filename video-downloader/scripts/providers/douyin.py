@@ -1,17 +1,21 @@
-"""Douyin provider using the H5 share page SSR payload."""
+"""Douyin video acquisition through H5, Jingxuan, and yt-dlp."""
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import shutil
 import subprocess
 import tempfile
+from http.client import HTTPException
 from pathlib import Path
 from time import strftime
 from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, urlparse
 from urllib.request import Request, urlopen
+
+from media_probe import probe_video
 
 from .safety import artifact_basename, sanitize_url
 
@@ -28,6 +32,12 @@ HEADERS = {
     "User-Agent": MOBILE_UA,
     "Referer": "https://www.iesdouyin.com/",
 }
+JINGXUAN_ORIGIN = "https://jingxuan.douyin.com"
+JINGXUAN_HEADERS = {
+    "User-Agent": MOBILE_UA.replace(" Version/17.0", ""),
+    "Referer": f"{JINGXUAN_ORIGIN}/",
+    "Accept-Language": "zh-CN,zh;q=0.9",
+}
 
 
 def supports(url: str) -> bool:
@@ -36,38 +46,51 @@ def supports(url: str) -> bool:
 
 
 def fetch(url: str, output_root: Path, *, metadata_only: bool = False, **options) -> dict:
-    allow_yt_dlp_fallback = options.get("allow_yt_dlp_fallback", True)
-    provider_options = dict(options)
-    provider_options.pop("allow_yt_dlp_fallback", None)
+    ratio = options.get("ratio")
+    aweme_id = _extract_aweme_id(url)
     try:
+        html, final_url = _download_text(url)
+        aweme_id = _extract_aweme_id(final_url) or aweme_id
         return _fetch_h5(
             url,
             output_root,
+            html=html,
+            final_url=final_url,
             metadata_only=metadata_only,
-            allow_yt_dlp_fallback=allow_yt_dlp_fallback,
-            **provider_options,
+            ratio=ratio or "1080p",
         )
     except RuntimeError as exc:
-        if allow_yt_dlp_fallback:
-            return _fetch_with_ytdlp(
-                url,
-                output_root,
-                metadata_only=metadata_only,
-                primary_error=str(exc),
-            )
-        raise
+        errors = [f"H5: {exc}"]
+        last_error = exc
+        if isinstance(exc.__cause__, HTTPError):
+            aweme_id = _extract_aweme_id(exc.__cause__.geturl()) or aweme_id
+
+    if aweme_id:
+        try:
+            return _fetch_jingxuan(url, output_root, aweme_id, metadata_only=metadata_only, ratio=ratio)
+        except RuntimeError as exc:
+            errors.append(f"Jingxuan: {exc}")
+            last_error = exc
+
+    if options.get("allow_yt_dlp_fallback", True):
+        try:
+            return _fetch_with_ytdlp(url, output_root, metadata_only=metadata_only, primary_error=errors[0])
+        except RuntimeError as exc:
+            errors.append(str(exc))
+            last_error = exc
+
+    raise RuntimeError("Douyin acquisition failed: " + " | ".join(errors)) from last_error
 
 
 def _fetch_h5(
     url: str,
     output_root: Path,
     *,
-    metadata_only: bool = False,
-    allow_yt_dlp_fallback: bool = True,
-    **options,
+    html: str,
+    final_url: str,
+    metadata_only: bool,
+    ratio: str,
 ) -> dict:
-    ratio = options.get("ratio") or "1080p"
-    html, final_url = _download_text(url)
     router_data = _extract_router_data(html)
     item = _extract_item(router_data)
     video_info = item.get("video") or {}
@@ -80,11 +103,7 @@ def _fetch_h5(
         raise RuntimeError("Could not find Douyin video resource ID in share page payload.")
 
     folder = output_root / f"douyin-{aweme_id}"
-    folder.mkdir(parents=True, exist_ok=True)
-
     caption = item.get("desc") or ""
-    post_caption_path = folder / "post_caption.txt"
-    post_caption_path.write_text(caption, encoding="utf-8")
 
     metadata = _normalize_metadata(
         source_url=url,
@@ -96,25 +115,14 @@ def _fetch_h5(
 
     video_path = None
     if not metadata_only:
-        filename = _safe_filename(caption, aweme_id)
-        video_path = folder / filename
-        try:
-            _download_binary(_build_nowm_url(video_resource_id, ratio), video_path)
-            download_method = "douyin_h5_nowm"
-            download_error = None
-        except RuntimeError as exc:
-            if not allow_yt_dlp_fallback:
-                raise
-            video_path = _download_with_ytdlp(url, folder, filename)
-            download_method = "yt_dlp_fallback"
-            download_error = str(exc)
+        folder.mkdir(parents=True, exist_ok=True)
+        video_path = folder / _safe_filename(caption, aweme_id)
+        _download_binary(_build_nowm_url(video_resource_id, ratio), video_path)
         metadata["download"] = {
             "video_path": artifact_basename(video_path),
-            "method": download_method,
-            "primary_route_failed": bool(download_error),
-            "endpoint": "https://aweme.snssdk.com/aweme/v1/play/"
-            if download_method == "douyin_h5_nowm"
-            else None,
+            "method": "douyin_h5_nowm",
+            "primary_route_failed": False,
+            "endpoint": "https://aweme.snssdk.com/aweme/v1/play/",
             "ratio": ratio,
         }
     else:
@@ -124,27 +132,121 @@ def _fetch_h5(
             "ratio": ratio,
         }
 
-    metadata_path = folder / "metadata.json"
-    metadata_path.write_text(
-        json.dumps(metadata, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
+    return _save_result(folder, aweme_id, caption, metadata, video_path)
 
-    return {
+
+def _fetch_jingxuan(
+    url: str,
+    output_root: Path,
+    aweme_id: str,
+    *,
+    metadata_only: bool,
+    ratio: str | None,
+) -> dict:
+    page_url = f"{JINGXUAN_ORIGIN}/m/video/{aweme_id}"
+    html, _ = _download_text(page_url, headers=JINGXUAN_HEADERS)
+    item, model = _extract_jingxuan_video(html, aweme_id)
+    streams = [
+        stream for stream in model.get("video_list") or []
+        if isinstance(stream, dict)
+        and isinstance(stream.get("video_meta"), dict)
+        and stream["video_meta"].get("vtype") == "mp4"
+        and all(isinstance(stream["video_meta"].get(key), int) and stream["video_meta"][key] > 0
+                for key in ("vwidth", "vheight", "size"))
+        and any(_is_https_url(stream.get(key)) for key in ("main_url", "backup_url"))
+    ]
+    if not streams:
+        raise RuntimeError("No MP4 streams found on the Jingxuan page.")
+
+    def quality(stream: dict) -> tuple[bool, int, int]:
+        media = stream["video_meta"]
+        height = media["vheight"]
+        preferred = ratio and ratio.lower() in (str(media.get("definition", "")).lower(), f"{height}p")
+        bitrate = media.get("bitrate")
+        return bool(preferred), height * media["vwidth"], bitrate if isinstance(bitrate, int) else 0
+
+    streams.sort(key=quality, reverse=True)
+    folder = output_root / f"douyin-{aweme_id}"
+    caption = item.get("abstract") or item.get("title") or ""
+    video_path = None
+    selected = streams[0]["video_meta"]
+    if not metadata_only:
+        folder.mkdir(parents=True, exist_ok=True)
+        video_path = folder / _safe_filename(caption, aweme_id)
+        selected = _download_jingxuan_stream(streams, video_path)
+
+    width, height = selected["vwidth"], selected["vheight"]
+    metadata = {
         "platform": PLATFORM,
+        "source_url": sanitize_url(url),
+        "final_url": page_url,
+        "fetched_at": strftime("%Y-%m-%dT%H:%M:%S%z"),
         "id": aweme_id,
-        "output_dir": str(folder),
-        "video_path": str(video_path) if video_path else None,
-        "post_caption_path": str(post_caption_path),
-        "caption_path": str(post_caption_path),
-        "metadata_path": str(metadata_path),
-        "post_caption": caption,
         "caption": caption,
-        "author": metadata.get("author", {}).get("nickname"),
-        "duration_seconds": metadata.get("video", {}).get("duration_seconds"),
-        "resolution": metadata.get("video", {}).get("resolution"),
-        "download_method": metadata.get("download", {}).get("method"),
+        "post_caption": caption,
+        "create_time": item.get("publish_time"),
+        "author": {"nickname": (item.get("media_user") or {}).get("screen_name")},
+        "video": {
+            "width": width,
+            "height": height,
+            "resolution": _resolution(width, height),
+            "duration_seconds": model.get("video_duration"),
+        },
+        "download": {
+            "method": "douyin_jingxuan",
+            "video_path": artifact_basename(video_path),
+            "metadata_only": metadata_only,
+            "primary_route_failed": True,
+            "ratio": selected.get("definition") or f"{height}p",
+        },
     }
+    return _save_result(folder, aweme_id, caption, metadata, video_path)
+
+
+def _extract_jingxuan_video(html: str, aweme_id: str) -> tuple[dict, dict]:
+    marker = re.search(r"window\._SSR_DATA\s*=\s*", html)
+    if not marker:
+        raise RuntimeError("Could not find Jingxuan video page data.")
+    try:
+        data, _ = json.JSONDecoder().raw_decode(html, marker.end())
+        item = data["data"]["storeState"]["detail"]["videoData"]["result"]
+        model = item["video_model"]
+        if isinstance(model, str):
+            model = json.loads(model)
+    except (KeyError, TypeError, json.JSONDecodeError) as exc:
+        raise RuntimeError("Could not read Jingxuan video data.") from exc
+    if str(item.get("gid")) != aweme_id or not isinstance(model, dict):
+        raise RuntimeError("Jingxuan did not return data for the requested video ID.")
+    return item, model
+
+
+def _download_jingxuan_stream(streams: list[dict], destination: Path) -> dict:
+    for stream in streams:
+        media = stream["video_meta"]
+        urls = dict.fromkeys(url for url in (stream.get("main_url"), stream.get("backup_url")) if _is_https_url(url))
+        for url in urls:
+            try:
+                _download_binary(
+                    url,
+                    destination,
+                    headers=JINGXUAN_HEADERS,
+                    expected_size=media["size"],
+                    expected_hash=media.get("file_hash"),
+                )
+            except RuntimeError:
+                continue
+            return media
+    raise RuntimeError("Could not download a valid MP4 from the Jingxuan playback URLs.")
+
+
+def _is_https_url(url: object) -> bool:
+    if not isinstance(url, str):
+        return False
+    try:
+        parsed = urlparse(url)
+        return parsed.scheme == "https" and bool(parsed.hostname)
+    except ValueError:
+        return False
 
 
 def _fetch_with_ytdlp(
@@ -160,9 +262,6 @@ def _fetch_with_ytdlp(
     folder.mkdir(parents=True, exist_ok=True)
 
     caption = metadata.get("description") or metadata.get("title") or ""
-    post_caption_path = folder / "post_caption.txt"
-    post_caption_path.write_text(caption, encoding="utf-8")
-
     video_path = None
     if not metadata_only:
         video_path = _download_with_ytdlp(url, folder, _safe_filename(caption, aweme_id))
@@ -192,9 +291,16 @@ def _fetch_with_ytdlp(
         },
     }
 
+    return _save_result(folder, aweme_id, caption, normalized, video_path)
+
+
+def _save_result(folder: Path, aweme_id: str, caption: str, metadata: dict, video_path: Path | None) -> dict:
+    folder.mkdir(parents=True, exist_ok=True)
+    post_caption_path = folder / "post_caption.txt"
+    post_caption_path.write_text(caption, encoding="utf-8")
     metadata_path = folder / "metadata.json"
     metadata_path.write_text(
-        json.dumps(normalized, ensure_ascii=False, indent=2),
+        json.dumps(metadata, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
 
@@ -208,25 +314,33 @@ def _fetch_with_ytdlp(
         "metadata_path": str(metadata_path),
         "post_caption": caption,
         "caption": caption,
-        "author": normalized.get("author", {}).get("nickname"),
-        "duration_seconds": normalized.get("video", {}).get("duration_seconds"),
-        "resolution": normalized.get("video", {}).get("resolution"),
-        "download_method": "yt_dlp_fallback",
+        "author": metadata.get("author", {}).get("nickname"),
+        "duration_seconds": metadata.get("video", {}).get("duration_seconds"),
+        "resolution": metadata.get("video", {}).get("resolution"),
+        "download_method": metadata.get("download", {}).get("method"),
     }
 
 
-def _download_text(url: str) -> tuple[str, str]:
-    request = Request(url, headers=HEADERS)
+def _download_text(url: str, *, headers: dict = HEADERS) -> tuple[str, str]:
+    request = Request(url, headers=headers)
     try:
         with urlopen(request, timeout=30) as response:
             body = response.read().decode("utf-8", errors="replace")
             return body, response.geturl()
-    except (HTTPError, URLError) as exc:
+    except (URLError, HTTPException, TimeoutError, ConnectionError) as exc:
         raise RuntimeError(f"Failed to fetch Douyin share page: {exc}") from exc
 
 
-def _download_binary(url: str, destination: Path) -> None:
-    request = Request(url, headers=HEADERS)
+def _download_binary(
+    url: str,
+    destination: Path,
+    *,
+    headers: dict = HEADERS,
+    expected_size: int | None = None,
+    expected_hash: str | None = None,
+) -> None:
+    request = Request(url, headers=headers)
+    temp_path = None
     try:
         with urlopen(request, timeout=60) as response:
             suffix = destination.suffix or ".mp4"
@@ -238,9 +352,22 @@ def _download_binary(url: str, destination: Path) -> None:
             ) as temp_file:
                 temp_path = Path(temp_file.name)
                 shutil.copyfileobj(response, temp_file)
+        if expected_size is not None and temp_path.stat().st_size != expected_size:
+            raise RuntimeError("Downloaded MP4 does not match the platform file size.")
+        if isinstance(expected_hash, str) and re.fullmatch(r"[0-9a-fA-F]{32}", expected_hash):
+            digest = hashlib.md5(usedforsecurity=False)
+            with temp_path.open("rb") as downloaded:
+                for block in iter(lambda: downloaded.read(1024 * 1024), b""):
+                    digest.update(block)
+            if digest.hexdigest() != expected_hash.lower():
+                raise RuntimeError("Downloaded MP4 does not match the platform checksum.")
+        probe_video(temp_path)
         temp_path.replace(destination)
-    except (HTTPError, URLError) as exc:
-        raise RuntimeError(f"Failed to download Douyin video: {exc}") from exc
+    except (URLError, HTTPException, TimeoutError, ConnectionError) as exc:
+        raise RuntimeError("Failed to download Douyin video stream.") from exc
+    finally:
+        if temp_path is not None:
+            temp_path.unlink(missing_ok=True)
 
 
 def _extract_metadata_with_ytdlp(url: str) -> dict:
@@ -318,7 +445,10 @@ def _extract_router_data(html: str) -> dict:
     match = re.search(r"window\._ROUTER_DATA\s*=\s*(\{.*?\})</script>", html, re.S)
     if not match:
         raise RuntimeError("Could not find window._ROUTER_DATA in Douyin share page.")
-    return json.loads(match.group(1))
+    try:
+        return json.loads(match.group(1))
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("Could not read the Douyin share page data.") from exc
 
 
 def _extract_item(router_data: dict) -> dict:

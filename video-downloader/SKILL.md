@@ -482,7 +482,7 @@ The provider refreshes metadata and the expiring play URL on every run, but a va
 
 ## Provider Behavior
 
-- Douyin: H5 route first, then yt-dlp fallback.
+- Douyin: try the H5 share page, then look up the same video ID on Douyin Jingxuan (抖音精选) if H5 fails, then try yt-dlp. Jingxuan defaults to the highest available MP4 resolution and honors `--ratio` when a matching stream is available. `--no-yt-dlp-fallback` only disables the final yt-dlp step.
 - Bilibili: yt-dlp with metadata, caption, and merged MP4 when possible.
 - YouTube: yt-dlp; may use local Node, remote components, or browser cookies when needed.
 - Xiaohongshu: yt-dlp with browser-cookie fallback.
